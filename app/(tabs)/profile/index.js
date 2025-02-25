@@ -1,11 +1,44 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  Modal,
+  Alert,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "../../components/config/colors";
+import AppButton from "../../components/AppButton";
+import { useAuth } from "../../context/authContext";
+import FriendSearch from "../../components/FriendSearch";
 
 export default function Profile() {
-  const friends = [1, 2, 3, 4]; // Placeholder for friend avatars
+  const { logout, userProfile, user } = useAuth();
+  const [showFriendSearch, setShowFriendSearch] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const displayName =
+    userProfile?.displayName ||
+    user?.displayName ||
+    user?.email?.split("@")[0] ||
+    "Skater";
+
+  const handleLogout = async () => {
+    if (loggingOut) return; // Prevent multiple clicks
+
+    try {
+      setLoggingOut(true);
+      await logout();
+      // Auth context handles navigation
+    } catch (error) {
+      console.error("Logout error:", error);
+      Alert.alert("Error", "Failed to log out. Please try again.");
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -20,31 +53,80 @@ export default function Profile() {
       <View style={styles.profileSection}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar} />
-          <Text style={styles.username}>Big Wayne</Text>
+          <Text style={styles.username}>{displayName}</Text>
         </View>
 
         <View style={styles.statsContainer}>
-          <Text style={styles.statsText}>Saved spots: 9</Text>
-          <Text style={styles.statsText}>Home park: NSP</Text>
-          <Text style={styles.statsText}>User since: 2019</Text>
+          <Text style={styles.statsText}>
+            Saved spots: {userProfile?.favoriteSkateparks?.length || 0}
+          </Text>
+          <Text style={styles.statsText}>
+            Friends: {userProfile?.friends?.length || 0}
+          </Text>
+          <Text style={styles.statsText}>
+            User since:{" "}
+            {userProfile?.createdAt
+              ? new Date(
+                  userProfile.createdAt.toDate?.() || userProfile.createdAt
+                ).getFullYear()
+              : "2025"}
+          </Text>
         </View>
       </View>
 
       <View style={styles.friendsSection}>
         <View style={styles.friendsHeader}>
-          <Text style={styles.friendsTitle}>Friends (13)</Text>
-          <TouchableOpacity style={styles.addButton}>
+          <Text style={styles.friendsTitle}>
+            Friends ({userProfile?.friends?.length || 0})
+          </Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowFriendSearch(true)}
+          >
             <Text style={styles.addButtonText}>Add</Text>
-            <Ionicons name="add" size={20} color={colors.dark} />
+            <Ionicons name="person-add" size={20} color={colors.dark} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.friendsGrid}>
-          {friends.map((friend, index) => (
-            <View key={index} style={styles.friendAvatar} />
-          ))}
-        </View>
+        {userProfile?.friends?.length > 0 ? (
+          <View style={styles.friendsGrid}>
+            {userProfile.friends.slice(0, 4).map((friend, index) => (
+              <View key={index} style={styles.friendAvatar}>
+                <Text style={styles.avatarInitial}>
+                  {friend.displayName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            ))}
+            {userProfile.friends.length > 4 && (
+              <TouchableOpacity style={styles.moreFriends}>
+                <Text style={styles.moreFriendsText}>
+                  +{userProfile.friends.length - 4}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <Text style={styles.noFriendsText}>
+            You haven't added any friends yet. Tap 'Add' to find friends.
+          </Text>
+        )}
+
+        {/* Logout button */}
+        <AppButton
+          title={loggingOut ? "Logging out..." : "Logout"}
+          onPress={handleLogout}
+          disabled={loggingOut}
+        />
       </View>
+
+      {/* Friend search modal */}
+      <Modal
+        visible={showFriendSearch}
+        animationType="slide"
+        onRequestClose={() => setShowFriendSearch(false)}
+      >
+        <FriendSearch onClose={() => setShowFriendSearch(false)} />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -79,6 +161,8 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     backgroundColor: colors.medium,
     marginBottom: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
   username: {
     color: colors.primary,
@@ -95,6 +179,7 @@ const styles = StyleSheet.create({
   },
   friendsSection: {
     padding: 20,
+    flex: 1,
   },
   friendsHeader: {
     flexDirection: "row",
@@ -124,11 +209,37 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+    marginBottom: 30,
   },
   friendAvatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
     backgroundColor: colors.medium,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitial: {
+    color: colors.white,
+    fontSize: 20,
+    fontWeight: "bold",
+  },
+  moreFriends: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.secondary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  moreFriendsText: {
+    color: colors.dark,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  noFriendsText: {
+    color: colors.secondary,
+    textAlign: "center",
+    marginBottom: 30,
   },
 });

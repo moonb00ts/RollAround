@@ -152,7 +152,7 @@ export default function SpotsMap() {
         <AppButton title="Find spots near me" onPress={centerOnUser} />
         <AppButton
           title="Add a spot"
-          onPress={() => router.push("/spots/add")}
+          onPress={() => router.push("../addSpot")}
         />
       </View>
     </SafeAreaView>

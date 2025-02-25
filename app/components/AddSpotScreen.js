@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Alert,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AppText from "../components/AppText";
 import MapView, { Marker } from "react-native-maps";
@@ -75,6 +76,32 @@ export default function AddSpot() {
         "Location Error",
         "Unable to get your location. Please try again."
       );
+    }
+  };
+
+  const handleClose = () => {
+    // Enhanced close button handler
+    console.log("Close button pressed");
+
+    // Check if there's unsaved work
+    const hasUnsavedWork = spotName || description || images.length > 0;
+
+    if (hasUnsavedWork) {
+      Alert.alert(
+        "Discard Changes?",
+        "You have unsaved changes. Are you sure you want to go back?",
+        [
+          { text: "Stay", style: "cancel" },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: () => router.back(),
+          },
+        ]
+      );
+    } else {
+      // No unsaved work, just go back
+      router.back();
     }
   };
 
@@ -205,129 +232,122 @@ export default function AddSpot() {
     }
   };
 
-  // Utility function to get current user ID (you'll need to implement this)
-  // const getCurrentUserId = async () => {
-  //   // This could come from:
-  //   // - AsyncStorage
-  //   // - Firebase Authentication
-  //   // - Your custom authentication system
-  //   try {
-  //     // Example (replace with your actual authentication method)
-  //     const userId = await AsyncStorage.getItem("userId");
-  //     if (!userId) {
-  //       throw new Error("No user logged in");
-  //     }
-  //     return userId;
-  //   } catch (error) {
-  //     Alert.alert("Authentication Error", "Please log in to add a spot");
-  //     throw error;
-  //   }
-  // };
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView style={styles.scrollView}>
-        <AppText style={styles.title}>Add a new spot</AppText>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Spot Name</Text>
-          <TextInput
-            style={styles.input}
-            value={spotName}
-            onChangeText={setSpotName}
-            placeholder="Enter spot name"
-            placeholderTextColor="#fff"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Spot Type</Text>
-          <View style={styles.typeButtonsContainer}>
-            {["Street", "Park", "DIY", "Transition"].map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={[
-                  styles.typeButton,
-                  spotType === type && styles.selectedTypeButton,
-                ]}
-                onPress={() => {
-                  console.log(type);
-                  setSpotType(type);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    spotType === type && styles.selectedTypeButtonText,
-                  ]}
-                >
-                  {type}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Describe the spot (obstacles, ground quality, etc.)"
-            placeholderTextColor="#fff"
-            multiline
-            numberOfLines={4}
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Location</Text>
-          <View style={styles.mapContainer}>
-            <MapView
-              ref={mapRef}
-              style={styles.map}
-              initialRegion={{
-                ...location,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
-              }}
-              onPress={(e) => setLocation(e.nativeEvent.coordinate)}
+    <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.headerContainer}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={handleClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Marker coordinate={location} />
-            </MapView>
-          </View>
-          <Text style={styles.mapHelper}>Tap to set spot location</Text>
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Photos</Text>
-          <ScrollView horizontal style={styles.imageScroll}>
-            {console.log("Rendering images array:", images)}
-            {images.map((image, index) => {
-              console.log("Rendering image:", image);
-              return (
-                <Image
-                  key={index}
-                  source={{ uri: image.localUri }}
-                  style={styles.previewImage}
-                />
-              );
-            })}
-            <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
-              <Ionicons name="camera" size={40} color={colors.secondary} />
+              <Ionicons name="close" size={24} color={colors.primary} />
             </TouchableOpacity>
-          </ScrollView>
-        </View>
+            <AppText style={styles.title}>Add a new spot</AppText>
+          </View>
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Add Spot</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Spot Name</Text>
+            <TextInput
+              style={styles.input}
+              value={spotName}
+              onChangeText={setSpotName}
+              placeholder="Enter spot name"
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Spot Type</Text>
+            <View style={styles.typeButtonsContainer}>
+              {["Street", "Park", "DIY", "Transition"].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.typeButton,
+                    spotType === type && styles.selectedTypeButton,
+                  ]}
+                  onPress={() => {
+                    console.log(type);
+                    setSpotType(type);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.typeButtonText,
+                      spotType === type && styles.selectedTypeButtonText,
+                    ]}
+                  >
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Describe the spot (obstacles, ground quality, etc.)"
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Location</Text>
+            <View style={styles.mapContainer}>
+              <MapView
+                ref={mapRef}
+                style={styles.map}
+                initialRegion={{
+                  ...location,
+                  latitudeDelta: 0.01,
+                  longitudeDelta: 0.01,
+                }}
+                onPress={(e) => setLocation(e.nativeEvent.coordinate)}
+              >
+                <Marker coordinate={location} />
+              </MapView>
+            </View>
+            <Text style={styles.mapHelper}>Tap to set spot location</Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Photos</Text>
+            <ScrollView horizontal style={styles.imageScroll}>
+              {images.map((image, index) => {
+                return (
+                  <Image
+                    key={index}
+                    source={{ uri: image.localUri }}
+                    style={styles.previewImage}
+                  />
+                );
+              })}
+              <TouchableOpacity
+                style={styles.addPhotoButton}
+                onPress={pickImage}
+              >
+                <Ionicons name="camera" size={40} color={colors.secondary} />
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+
+          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+            <Text style={styles.submitButtonText}>Add Spot</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -339,11 +359,18 @@ const styles = StyleSheet.create({
   scrollView: {
     padding: 20,
   },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   title: {
     fontSize: 34,
     fontWeight: "bold",
     color: colors.white,
-    marginBottom: 20,
+    flex: 1,
+    textAlign: "center",
+    marginRight: 34, // Balance the space taken by the close button
   },
   inputContainer: {
     marginBottom: 20,
@@ -399,6 +426,14 @@ const styles = StyleSheet.create({
     borderColor: colors.secondary,
     borderStyle: "dashed",
   },
+  closeButton: {
+    padding: 10,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   typeButtonsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -428,7 +463,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 10,
     marginBottom: 40,
   },
   submitButtonText: {

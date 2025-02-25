@@ -8,6 +8,9 @@ export const ActivityCard = ({ activity }) => {
       <View style={styles.content}>
         <Text style={styles.username}>{activity.name}</Text>
         <Text style={styles.action}>{activity.action}</Text>
+        {activity.timestamp && (
+          <Text style={styles.timestamp}>{activity.timestamp}</Text>
+        )}
       </View>
     </View>
   );
@@ -35,6 +38,12 @@ const styles = StyleSheet.create({
   },
   action: {
     color: "#fff",
+  },
+  timestamp: {
+    color: colors.secondary,
+    fontSize: 12,
+    marginTop: 5,
+    fontStyle: "italic",
   },
 });
 
