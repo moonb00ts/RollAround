@@ -226,7 +226,7 @@ export function AuthProvider({ children }) {
       // Then sign out from Firebase
       await signOut(auth);
       console.log("Firebase signout complete");
-
+      router.replace("/");
       // Auth state listener will handle the rest
       return true;
     } catch (error) {

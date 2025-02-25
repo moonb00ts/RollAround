@@ -14,8 +14,10 @@ import colors from "../../components/config/colors";
 import AppButton from "../../components/AppButton";
 import { useAuth } from "../../context/authContext";
 import FriendSearch from "../../components/FriendSearch";
+import { useRouter } from "expo-router";
 
 export default function Profile() {
+  const router = useRouter();
   const { logout, userProfile, user } = useAuth();
   const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -26,21 +28,10 @@ export default function Profile() {
     user?.email?.split("@")[0] ||
     "Skater";
 
-  const handleLogout = async () => {
-    if (loggingOut) return; // Prevent multiple clicks
-
-    try {
-      setLoggingOut(true);
-      console.log("Attempting to log out");
-      await logout();
-      console.log("Logout method completed");
-      // Auth context handles navigation
-    } catch (error) {
-      console.error("Logout error in Profile screen:", error);
-      Alert.alert("Error", "Failed to log out. Please try again.");
-      setLoggingOut(false);
-    }
+  const handleLogout = () => {
+    router.push("/logout");
   };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
