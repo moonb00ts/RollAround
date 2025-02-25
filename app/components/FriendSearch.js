@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/authContext";
@@ -18,21 +19,35 @@ const FriendSearch = ({ onClose }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const { searchUsers, sendFriendRequest } = useAuth();
 
+  // Clear results when search term is cleared
+  useEffect(() => {
+    if (searchTerm === "") {
+      setResults([]);
+      setHasSearched(false);
+    }
+  }, [searchTerm]);
+
   const handleSearch = async () => {
-    if (searchTerm.trim().length < 3) {
-      Alert.alert("Error", "Please enter at least 3 characters to search");
+    if (searchTerm.trim().length < 2) {
+      Alert.alert("Error", "Please enter at least 2 characters to search");
       return;
     }
 
+    Keyboard.dismiss();
     setLoading(true);
+    setHasSearched(true);
+
     try {
+      console.log("Searching for users with term:", searchTerm);
       const searchResults = await searchUsers(searchTerm);
+      console.log(`Received ${searchResults.length} results`);
       setResults(searchResults);
     } catch (error) {
+      console.error("Search error:", error);
       Alert.alert("Error", "Failed to search for users");
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -61,7 +76,7 @@ const FriendSearch = ({ onClose }) => {
       <View style={styles.userInfo}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {item.displayName.charAt(0).toUpperCase()}
+            {item.displayName?.charAt(0).toUpperCase() || "?"}
           </Text>
         </View>
         <Text style={styles.username}>{item.displayName}</Text>
@@ -85,6 +100,16 @@ const FriendSearch = ({ onClose }) => {
     </View>
   );
 
+  const getEmptyText = () => {
+    if (!hasSearched) {
+      return "Search for skaters by username";
+    }
+    if (loading) {
+      return "Searching...";
+    }
+    return "No users found. Try a different search term.";
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.container}>
@@ -104,8 +129,16 @@ const FriendSearch = ({ onClose }) => {
             onChangeText={setSearchTerm}
             returnKeyType="search"
             onSubmitEditing={handleSearch}
+            autoFocus={true}
           />
-          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <TouchableOpacity
+            style={[
+              styles.searchButton,
+              searchTerm.trim().length < 2 && styles.disabledButton,
+            ]}
+            onPress={handleSearch}
+            disabled={searchTerm.trim().length < 2}
+          >
             <Ionicons name="search" size={24} color={colors.white} />
           </TouchableOpacity>
         </View>
@@ -123,11 +156,7 @@ const FriendSearch = ({ onClose }) => {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.resultsList}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>
-                {searchTerm.length > 0
-                  ? "No users found. Try a different search term."
-                  : "Search for skaters by username"}
-              </Text>
+              <Text style={styles.emptyText}>{getEmptyText()}</Text>
             }
           />
         )}
@@ -174,8 +203,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
+  disabledButton: {
+    backgroundColor: colors.medium,
+    opacity: 0.5,
+  },
   resultsList: {
     paddingHorizontal: 15,
+    flexGrow: 1,
   },
   userItem: {
     flexDirection: "row",

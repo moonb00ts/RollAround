@@ -31,15 +31,16 @@ export default function Profile() {
 
     try {
       setLoggingOut(true);
+      console.log("Attempting to log out");
       await logout();
+      console.log("Logout method completed");
       // Auth context handles navigation
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Logout error in Profile screen:", error);
       Alert.alert("Error", "Failed to log out. Please try again.");
       setLoggingOut(false);
     }
   };
-
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>

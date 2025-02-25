@@ -101,6 +101,7 @@ export function AuthProvider({ children }) {
       "Auth state changed:",
       currentUser ? "logged in" : "logged out"
     );
+    console.log("Initialized state:", initialized);
 
     // Update user state
     setUser(currentUser);
@@ -108,21 +109,15 @@ export function AuthProvider({ children }) {
     // Store auth state
     storeAuthState(!!currentUser);
 
-    // Handle navigation only if we're initialized
-    if (initialized) {
-      if (currentUser) {
-        // User is logged in, navigate to tabs
-        console.log("Navigating to tabs");
-        setTimeout(() => {
-          router.replace("/(tabs)");
-        }, 100);
-      } else {
-        // User is logged out, navigate to login
-        console.log("Navigating to login");
-        setTimeout(() => {
-          router.push("/");
-        }, 100);
-      }
+    // Always attempt to navigate when auth state changes
+    if (currentUser) {
+      // User is logged in, navigate to tabs
+      console.log("Navigating to tabs");
+      router.replace("/(tabs)");
+    } else {
+      // User is logged out, navigate to login
+      console.log("Navigating to login");
+      router.replace("/");
     }
 
     // Set initialized to true after the first auth state change
@@ -223,6 +218,8 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     console.log("Logout requested");
     try {
+      console.log("Current user before signout:", user.displayName);
+
       // First clear our states
       setUserProfile(null);
 
@@ -239,24 +236,56 @@ export function AuthProvider({ children }) {
   };
 
   // Friend request functions
+  // Updated sendFriendRequest function for authContext.js
   const sendFriendRequest = async (friendId) => {
     if (!user) return;
 
     try {
+      console.log(`Attempting to send friend request to user: ${friendId}`);
+
+      // Get current user's profile first to provide in the request
+      const currentUserRef = doc(firestore, "users", user.uid);
+      const currentUserSnap = await getDoc(currentUserRef);
+
+      if (!currentUserSnap.exists()) {
+        throw new Error("Your user profile could not be found");
+      }
+
+      const currentUserData = currentUserSnap.data();
+      const senderName =
+        currentUserData.displayName ||
+        user.displayName ||
+        user.email?.split("@")[0] ||
+        "A user";
+
+      console.log(`Sending request as: ${senderName}`);
+
       // Add to recipient's friendRequests array
       const friendRef = doc(firestore, "users", friendId);
+
+      // Create a friend request object
+      const friendRequest = {
+        userId: user.uid,
+        displayName: senderName,
+        status: "pending",
+        timestamp: new Date(),
+      };
+
+      // Update the friend's document
       await updateDoc(friendRef, {
-        friendRequests: arrayUnion({
-          userId: user.uid,
-          displayName: user.displayName || userProfile.displayName,
-          status: "pending",
-          timestamp: new Date(),
-        }),
+        friendRequests: arrayUnion(friendRequest),
       });
 
+      console.log("Friend request sent successfully");
       return true;
     } catch (error) {
       console.error("Error sending friend request:", error);
+      // Add more detailed error logging
+      if (error.code === "permission-denied") {
+        console.error(
+          "This is a Firebase permissions error. Check your security rules."
+        );
+      }
       throw error;
     }
   };
@@ -402,45 +431,101 @@ export function AuthProvider({ children }) {
   // Search for users to add as friends
   const searchUsers = async (searchTerm) => {
     try {
+      console.log("Starting user search for term:", searchTerm);
+      console.log("Current user ID:", user.uid);
+
+      // Check if user profile is available
+      if (!userProfile) {
+        console.log("Warning: userProfile is null or undefined");
+      } else {
+        console.log(
+          "User profile available, friends count:",
+          userProfile.friends?.length || 0
+        );
+      }
+
       const usersRef = collection(firestore, "users");
 
-      // Search by displayName
-      const q = query(
-        usersRef,
-        where("displayName", ">=", searchTerm),
-        where("displayName", "<=", searchTerm + "\uf8ff")
-      );
+      // First, let's get ALL users to see what's in the database
+      const querySnapshot = await getDocs(usersRef);
 
-      const querySnapshot = await getDocs(q);
+      // Log the total number of users in the database
+      console.log(`Total users in database: ${querySnapshot.size}`);
+
+      // Debug: Log all users for inspection
+      const allUsers = [];
+      querySnapshot.forEach((doc) => {
+        const userData = doc.data();
+        console.log(
+          `User found - ID: ${doc.id}, Name: ${
+            userData.displayName || "No display name"
+          }`
+        );
+        allUsers.push({
+          id: doc.id,
+          ...userData,
+        });
+      });
+
+      // Now filter for our search
+      const searchTermLower = searchTerm.toLowerCase();
       const results = [];
 
-      querySnapshot.forEach((doc) => {
-        // Don't include current user in results
-        if (doc.id !== user.uid) {
-          const userData = doc.data();
+      for (const docData of allUsers) {
+        // Skip current user
+        if (docData.id === user.uid) {
+          console.log(`Skipping current user: ${docData.id}`);
+          continue;
+        }
+
+        const displayName = docData.displayName || "";
+        const email = docData.email || "";
+
+        console.log(
+          `Checking user ${docData.id}: displayName="${displayName}", email="${email}"`
+        );
+
+        // Check both displayName and email for matches
+        if (
+          displayName.toLowerCase().includes(searchTermLower) ||
+          email.toLowerCase().includes(searchTermLower)
+        ) {
+          console.log(`Match found for ${docData.id}`);
 
           // Check if this user is already a friend
-          const isFriend = userProfile.friends.some(
-            (friend) => friend.userId === doc.id
-          );
+          const isFriend =
+            userProfile?.friends?.some(
+              (friend) => friend.userId === docData.id
+            ) || false;
+
+          if (isFriend) {
+            console.log(`User ${docData.id} is already a friend`);
+          }
 
           // Check if we've already sent a request to this user
-          const requestSent = userData.friendRequests?.some(
-            (req) => req.userId === user.uid
-          );
+          const requestSent =
+            docData.friendRequests?.some((req) => req.userId === user.uid) ||
+            false;
+
+          if (requestSent) {
+            console.log(`Request already sent to user ${docData.id}`);
+          }
 
           results.push({
-            id: doc.id,
-            displayName: userData.displayName,
+            id: docData.id,
+            displayName: displayName || email.split("@")[0], // Fallback to email username
+            email: docData.email,
             isFriend,
             requestSent,
           });
         }
-      });
+      }
 
+      console.log(`Returning ${results.length} matching users`);
       return results;
     } catch (error) {
       console.error("Error searching users:", error);
+      console.error(error.stack); // Log the full stack trace
       throw error;
     }
   };

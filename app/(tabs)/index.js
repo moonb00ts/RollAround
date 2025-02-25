@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import {
   View,
   StyleSheet,
@@ -16,14 +16,13 @@ import AppButton from "../components/AppButton";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../context/authContext";
 
 export default function SpotsMap() {
-  // Initialize router for navigation
+  // Always call these hooks, regardless of authentication
   const router = useRouter();
-
-  // Create map reference
+  const { user, loading } = useAuth();
   const map = useRef(null);
-
   const [spots, setSpots] = useState([]);
   const [region, setRegion] = useState({
     latitude: 37.78825,
@@ -31,48 +30,84 @@ export default function SpotsMap() {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
+  const [locationPermission, setLocationPermission] = useState(null);
 
-  const fetchSpots = async () => {
-    try {
-      const response = await spotService.getAllSpots();
-      if (response.data) {
-        const validSpots = response.data.filter(
-          (spot) =>
-            spot?.location?.coordinates &&
-            Array.isArray(spot.location.coordinates) &&
-            spot.location.coordinates.length === 2
-        );
-        setSpots(validSpots);
-      }
-    } catch (error) {
-      console.error("Error fetching spots:", error);
-      Alert.alert("Error", "Failed to load spots. Please try again.");
-    }
-  };
-
-  // Initial fetch when component mounts
+  // Navigation effect
   useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/");
+    }
+  }, [loading, user, router]);
+
+  // Fetch spots effect
+  useEffect(() => {
+    const fetchSpots = async () => {
+      if (!user) return;
+
+      try {
+        const response = await spotService.getAllSpots();
+        if (response.data) {
+          const validSpots = response.data.filter(
+            (spot) =>
+              spot?.location?.coordinates &&
+              Array.isArray(spot.location.coordinates) &&
+              spot.location.coordinates.length === 2
+          );
+          setSpots(validSpots);
+        }
+      } catch (error) {
+        console.error("Error fetching spots:", error);
+        Alert.alert("Error", "Failed to load spots. Please try again.");
+      }
+    };
+
     fetchSpots();
+  }, [user]);
+
+  // Memoize refresh handler
+  const handleRefresh = useMemo(
+    () => async () => {
+      try {
+        const response = await spotService.getAllSpots();
+        if (response.data) {
+          const validSpots = response.data.filter(
+            (spot) =>
+              spot?.location?.coordinates &&
+              Array.isArray(spot.location.coordinates) &&
+              spot.location.coordinates.length === 2
+          );
+          setSpots(validSpots);
+        }
+        Alert.alert("Success", "Spots updated successfully!");
+      } catch (error) {
+        console.error("Error refreshing spots:", error);
+        Alert.alert("Error", "Failed to refresh spots. Please try again.");
+      }
+    },
+    []
+  );
+
+  // Location permission effect
+  useEffect(() => {
+    const requestLocationPermission = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status);
+    };
+
+    requestLocationPermission();
   }, []);
 
-  // Refresh function now just calls fetchSpots with a loading indicator
-  const handleRefresh = async () => {
-    await fetchSpots();
-    Alert.alert("Success", "Spots updated successfully!");
-  };
-
+  // Center on user function
   const centerOnUser = async () => {
+    if (locationPermission !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Please enable location services to use this feature"
+      );
+      return;
+    }
+
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Please enable location services to use this feature"
-        );
-        return;
-      }
-
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
@@ -84,7 +119,6 @@ export default function SpotsMap() {
         longitudeDelta: 0.01,
       };
 
-      // Add safety check before animating
       if (map.current) {
         map.current.animateToRegion(newRegion, 1000);
       }
@@ -97,19 +131,23 @@ export default function SpotsMap() {
     }
   };
 
+  // If loading or no user, return null to maintain consistent hook calls
+  if (loading || !user) {
+    return null;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
       <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
         <Ionicons name="refresh" size={24} color={colors.white} />
       </TouchableOpacity>
       <MapView
-        ref={map} // Added ref connection to MapView
+        ref={map}
         style={styles.map}
         region={region}
         onRegionChangeComplete={setRegion}
       >
         {spots.map((spot) => {
-          // Add safety check for each marker
           if (!spot?.location?.coordinates) return null;
 
           return (
