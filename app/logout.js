@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { View, ActivityIndicator, Text } from "react-native";
 import { useAuth } from "./context/authContext";

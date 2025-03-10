@@ -169,17 +169,27 @@ export default function SpotsMap() {
                 />
               </View>
 
-              <Callout>
+              <Callout
+                onPress={() => {
+                  // Navigate to spot details when callout is pressed
+                  router.push(`/spot/${spot._id}`);
+                }}
+              >
                 <View style={styles.callout}>
                   <Text style={styles.calloutTitle}>{spot.name}</Text>
                   <Text style={styles.calloutType}>{spot.spotType}</Text>
-                  <Text style={styles.calloutType}>{spot.description}</Text>
+                  <Text style={styles.calloutDescription} numberOfLines={2}>
+                    {spot.description}
+                  </Text>
                   {spot.images?.length > 0 && (
                     <Image
                       source={{ uri: spot.images[0].url }}
                       style={styles.calloutImage}
                     />
                   )}
+                  <Text style={styles.viewDetailsText}>
+                    Tap to view details
+                  </Text>
                 </View>
               </Callout>
             </Marker>
@@ -245,26 +255,24 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 5,
   },
+  viewDetailsText: {
+    color: colors.primary,
+    fontSize: 12,
+    marginTop: 5,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
   refreshButton: {
-    // Position the button absolutely within the SafeAreaView
     position: "absolute",
-    // Place it 60 pixels from the top to account for the status bar
     top: 55,
-    // Place it 20 pixels from the right edge
     left: 10,
-    // Make it a circle with equal width and height
     width: 40,
     height: 40,
     borderRadius: 20,
-    // Center the icon inside the button
     justifyContent: "center",
     alignItems: "center",
-    // Give it a background color
     backgroundColor: colors.secondary,
-    // Make sure it appears above the map
     zIndex: 2,
-    // Add a shadow effect to make it appear to float
-    // iOS shadow properties
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -272,7 +280,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    // Android elevation
     elevation: 5,
   },
 });

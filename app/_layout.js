@@ -27,7 +27,21 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
+          name="spot"
+          options={{
+            presentation: "card",
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
           name="addSpot"
+          options={{
+            presentation: "modal",
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="addClip"
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",
