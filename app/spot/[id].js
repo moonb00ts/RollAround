@@ -18,6 +18,8 @@ import colors from "../components/config/colors";
 import { spotService } from "../services/api";
 import { useAuth } from "../context/authContext";
 import ShareSpot from "../components/ShareSpot";
+import VideoClipsList from "../components/VideoClipsList";
+import VideoSelector from "../components/VideoSelector";
 
 export default function SpotDetails() {
   const { id } = useLocalSearchParams();
@@ -28,6 +30,12 @@ export default function SpotDetails() {
   const [error, setError] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showVideoForm, setShowVideoForm] = useState(false);
+
+  const handleVideoUploaded = async () => {
+    fetchSpotDetails();
+    setShowVideoForm(false);
+  };
 
   useEffect(() => {
     fetchSpotDetails();
@@ -178,7 +186,6 @@ export default function SpotDetails() {
           )}
         </View>
 
-      
         <View style={styles.detailsContainer}>
           <View style={styles.headerRow}>
             <Text style={styles.spotName}>{spot.name}</Text>
@@ -201,6 +208,34 @@ export default function SpotDetails() {
           <View style={styles.descriptionContainer}>
             <Text style={styles.sectionTitle}>Description</Text>
             <Text style={styles.description}>{spot.description}</Text>
+          </View>
+
+          <View style={styles.detailSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Videos</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowVideoForm(!showVideoForm)}
+              >
+                <Ionicons
+                  name={showVideoForm ? "close" : "add"}
+                  size={20}
+                  color={colors.dark}
+                />
+                <Text style={styles.addButtonText}>
+                  {showVideoForm ? "Cancel" : "Add Clip"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {showVideoForm ? (
+              <VideoSelector
+                onVideoUploaded={handleVideoUploaded}
+                spotId={spot._id}
+              />
+            ) : (
+              <VideoClipsList videos={spot.videos || []} spotName={spot.name} />
+            )}
           </View>
 
           <View style={styles.actionsContainer}>
@@ -406,5 +441,30 @@ const styles = StyleSheet.create({
     color: colors.dark,
     fontWeight: "bold",
     marginLeft: 10,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.white,
+    fontFamily: "SubwayBerlinSC",
+  },
+  addButton: {
+    flexDirection: "horizontal",
+    alignItems: "center",
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  addButtonText: {
+    color: colors.dark,
+    marginLeft: 5,
+    fontWeight: "bold",
   },
 });
