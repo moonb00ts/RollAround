@@ -205,9 +205,9 @@ export const spotService = {
 
       // Build the video object to send to the server
       const payload = {
-        url: videoData.videoUrl,
-        thumbnail: videoData.thumbnailUrl,
-        caption: videoData.title,
+        url: videoData.url,
+        thumbnail: videoData.thumbnail,
+        caption: videoData.caption,
         description: videoData.description || "",
         userId: videoData.userId,
         userName: videoData.userName || "Anonymous",

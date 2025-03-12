@@ -100,12 +100,14 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
 
       // Step 2: Add video to spot using our new simple approach
       if (spotId) {
-        // Prepare video data
+        // Prepare video data with the correct structure
         const videoData = {
           url: uploadResult.url,
           thumbnail: uploadResult.thumbnail || uploadResult.url,
           caption: caption.trim(),
+          description: "",
           userId: user.uid,
+          userName: user.displayName || "Anonymous",
         };
 
         console.log("Adding video to spot:", videoData);

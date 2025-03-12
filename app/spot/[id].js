@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   Image,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -127,138 +127,154 @@ export default function SpotDetails() {
     );
   }
 
+  // Replace the ScrollView with a FlatList for the main content to avoid nesting VirtualizedLists
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <Ionicons name="arrow-back" size={24} color={colors.primary} />
       </TouchableOpacity>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.imageContainer}>
-          {spot.images && spot.images.length > 0 ? (
-            <View>
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={(event) => {
-                  const slideSize = event.nativeEvent.layoutMeasurement.width;
-                  const index = Math.round(
-                    event.nativeEvent.contentOffset.x / slideSize
-                  );
-                  if (index !== activeImageIndex) {
-                    setActiveImageIndex(index);
-                  }
-                }}
-                scrollEventThrottle={16}
-              >
-                {spot.images.map((image, index) => (
-                  <Image
-                    key={index}
-                    source={{ uri: image.url }}
-                    style={styles.spotImage}
-                    resizeMode="cover"
+
+      <FlatList
+        data={[{ key: "spot_details" }]} // Single item to render once
+        renderItem={() => (
+          <>
+            <View style={styles.imageContainer}>
+              {spot.images && spot.images.length > 0 ? (
+                <View>
+                  <FlatList
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    data={spot.images}
+                    keyExtractor={(_, index) => `image_${index}`}
+                    renderItem={({ item }) => (
+                      <Image
+                        source={{ uri: item.url }}
+                        style={styles.spotImage}
+                        resizeMode="cover"
+                      />
+                    )}
+                    onScroll={(event) => {
+                      const slideSize =
+                        event.nativeEvent.layoutMeasurement.width;
+                      const index = Math.round(
+                        event.nativeEvent.contentOffset.x / slideSize
+                      );
+                      if (index !== activeImageIndex) {
+                        setActiveImageIndex(index);
+                      }
+                    }}
+                    scrollEventThrottle={16}
                   />
-                ))}
-              </ScrollView>
-              {spot.images.length > 1 && (
-                <View style={styles.imageDots}>
-                  {spot.images.map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.imageDot,
-                        index === activeImageIndex && styles.activeDot,
-                      ]}
-                    />
-                  ))}
+                  {spot.images.length > 1 && (
+                    <View style={styles.imageDots}>
+                      {spot.images.map((_, index) => (
+                        <View
+                          key={index}
+                          style={[
+                            styles.imageDot,
+                            index === activeImageIndex && styles.activeDot,
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.noImageContainer}>
+                  <Ionicons
+                    name="image-outline"
+                    size={60}
+                    color={colors.secondary}
+                  />
+                  <Text style={styles.noImageText}>No images available</Text>
                 </View>
               )}
             </View>
-          ) : (
-            <View style={styles.noImageContainer}>
-              <Ionicons
-                name="image-outline"
-                size={60}
-                color={colors.secondary}
-              />
-              <Text style={styles.noImageText}>No images available</Text>
-            </View>
-          )}
-        </View>
 
-        <View style={styles.detailsContainer}>
-          <View style={styles.headerRow}>
-            <Text style={styles.spotName}>{spot.name}</Text>
-            {spot.spotType && (
-              <View style={styles.spotTypeTag}>
-                <Text style={styles.spotTypeText}>{spot.spotType}</Text>
+            <View style={styles.detailsContainer}>
+              <View style={styles.headerRow}>
+                <Text style={styles.spotName}>{spot.name}</Text>
+                {spot.spotType && (
+                  <View style={styles.spotTypeTag}>
+                    <Text style={styles.spotTypeText}>{spot.spotType}</Text>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
 
-          <View style={styles.location}>
-            <Ionicons name="location" size={18} color={colors.primary} />
-            <Text style={styles.locationText}>
-              {spot.location && spot.location.address
-                ? spot.location.address
-                : "Location not available"}
-            </Text>
-          </View>
-
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{spot.description}</Text>
-          </View>
-
-          <View style={styles.detailSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Videos</Text>
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => setShowVideoForm(!showVideoForm)}
-              >
-                <Ionicons
-                  name={showVideoForm ? "close" : "add"}
-                  size={20}
-                  color={colors.dark}
-                />
-                <Text style={styles.addButtonText}>
-                  {showVideoForm ? "Cancel" : "Add Clip"}
+              {/* <View style={styles.location}>
+                <Ionicons name="location" size={18} color={colors.primary} />
+                <Text style={styles.locationText}>
+                  {spot.location && spot.location.address
+                    ? spot.location.address
+                    : "Location not available"}
                 </Text>
-              </TouchableOpacity>
+              </View> */}
+
+              <View style={styles.descriptionContainer}>
+                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.description}>{spot.description}</Text>
+              </View>
+
+              <View style={styles.actionsContainer}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleShare}
+                >
+                  <Ionicons name="share-social" size={24} color={colors.dark} />
+                  <Text style={styles.actionButtonText}>Share</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() =>
+                    Alert.alert(
+                      "Coming Soon",
+                      "This feature will be available in a future update."
+                    )
+                  }
+                >
+                  <Ionicons name="heart" size={24} color={colors.dark} />
+                  <Text style={styles.actionButtonText}>Favorite</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.detailSection}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Videos</Text>
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => setShowVideoForm(!showVideoForm)}
+                  >
+                    <Ionicons
+                      name={showVideoForm ? "close" : "add"}
+                      size={20}
+                      color={colors.dark}
+                    />
+                    <Text style={styles.addButtonText}>
+                      {showVideoForm ? "Cancel" : "Add Clip"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {showVideoForm ? (
+                  <VideoSelector
+                    onVideoUploaded={handleVideoUploaded}
+                    spotId={spot._id}
+                  />
+                ) : (
+                  <VideoClipsList
+                    videos={spot.videos || []}
+                    spotName={spot.name}
+                  />
+                )}
+              </View>
             </View>
+          </>
+        )}
+        contentContainerStyle={styles.scrollViewContent}
+      />
 
-            {showVideoForm ? (
-              <VideoSelector
-                onVideoUploaded={handleVideoUploaded}
-                spotId={spot._id}
-              />
-            ) : (
-              <VideoClipsList videos={spot.videos || []} spotName={spot.name} />
-            )}
-          </View>
-
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-              <Ionicons name="share-social" size={24} color={colors.dark} />
-              <Text style={styles.actionButtonText}>Share</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() =>
-                Alert.alert(
-                  "Coming Soon",
-                  "This feature will be available in a future update."
-                )
-              }
-            >
-              <Ionicons name="heart" size={24} color={colors.dark} />
-              <Text style={styles.actionButtonText}>Favorite</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
       <ShareSpot
         isVisible={showShareModal}
         onClose={() => setShowShareModal(false)}
@@ -270,12 +286,9 @@ export default function SpotDetails() {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 5,
     flex: 1,
-    paddingTop: 40,
     backgroundColor: colors.dark,
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollViewContent: {
     paddingBottom: 20,
@@ -317,12 +330,11 @@ const styles = StyleSheet.create({
   },
   // Back button (update position)
   backButton: {
-    top: 10,
+    top: 5,
     left: 10,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.medium,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 10,
@@ -404,7 +416,7 @@ const styles = StyleSheet.create({
   location: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 10,
   },
   locationText: {
     color: colors.white,
@@ -426,7 +438,6 @@ const styles = StyleSheet.create({
   actionsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 20,
     marginBottom: 40,
   },
   actionButton: {
@@ -455,9 +466,9 @@ const styles = StyleSheet.create({
     fontFamily: "SubwayBerlinSC",
   },
   addButton: {
-    flexDirection: "horizontal",
+    flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: colors.secondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
@@ -466,5 +477,8 @@ const styles = StyleSheet.create({
     color: colors.dark,
     marginLeft: 5,
     fontWeight: "bold",
+  },
+  detailSection: {
+    marginBottom: 20,
   },
 });
