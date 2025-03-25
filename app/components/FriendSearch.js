@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
-  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/authContext";
@@ -22,21 +21,23 @@ const FriendSearch = ({ onClose }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const { searchUsers, sendFriendRequest } = useAuth();
 
-  // Clear results when search term is cleared
+  // Search immediately on each character input
   useEffect(() => {
     if (searchTerm === "") {
       setResults([]);
       setHasSearched(false);
-    }
-  }, [searchTerm]);
-
-  const handleSearch = async () => {
-    if (searchTerm.trim().length < 2) {
-      Alert.alert("Error", "Please enter at least 2 characters to search");
       return;
     }
 
-    Keyboard.dismiss();
+    if (searchTerm.trim().length < 2) {
+      return; // Don't search with less than 2 characters
+    }
+
+    // Search immediately with each character change
+    performSearch();
+  }, [searchTerm]);
+
+  const performSearch = async () => {
     setLoading(true);
     setHasSearched(true);
 
@@ -102,12 +103,18 @@ const FriendSearch = ({ onClose }) => {
 
   const getEmptyText = () => {
     if (!hasSearched) {
-      return "Search for skaters by username";
+      return "Type to search for skaters";
     }
     if (loading) {
       return "Searching...";
     }
     return "No users found. Try a different search term.";
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setResults([]);
+    setHasSearched(false);
   };
 
   return (
@@ -121,26 +128,28 @@ const FriendSearch = ({ onClose }) => {
         </View>
 
         <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search by username"
-            placeholderTextColor={colors.primary}
-            value={searchTerm}
-            onChangeText={setSearchTerm}
-            returnKeyType="search"
-            onSubmitEditing={handleSearch}
-            autoFocus={true}
-          />
-          <TouchableOpacity
-            style={[
-              styles.searchButton,
-              searchTerm.trim().length < 2 && styles.disabledButton,
-            ]}
-            onPress={handleSearch}
-            disabled={searchTerm.trim().length < 2}
-          >
-            <Ionicons name="search" size={24} color={colors.white} />
-          </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by username"
+              placeholderTextColor={colors.primary}
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              autoFocus={true}
+            />
+            {searchTerm.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={handleClearSearch}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.secondary}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {loading ? (
@@ -186,26 +195,25 @@ const styles = StyleSheet.create({
     fontFamily: "SubwayBerlinSC",
   },
   searchContainer: {
-    flexDirection: "row",
     padding: 15,
     alignItems: "center",
   },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.medium,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    width: "100%",
+  },
   searchInput: {
     flex: 1,
-    backgroundColor: colors.medium,
-    borderRadius: 8,
     padding: 10,
     color: colors.white,
-    marginRight: 10,
+    fontSize: 16,
   },
-  searchButton: {
-    backgroundColor: colors.secondary,
-    borderRadius: 8,
-    padding: 10,
-  },
-  disabledButton: {
-    backgroundColor: colors.medium,
-    opacity: 0.5,
+  clearButton: {
+    padding: 5,
   },
   resultsList: {
     paddingHorizontal: 15,

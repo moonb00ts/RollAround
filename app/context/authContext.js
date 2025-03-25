@@ -95,7 +95,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Handle navigation based on auth state ************************
+  // Handle navigation based on auth state *
   const handleAuthStateChange = (currentUser) => {
     console.log(
       "Auth state changed:",
@@ -530,6 +530,132 @@ export function AuthProvider({ children }) {
     }
   };
 
+  //ADD/UPDATE PROFILE PHOTO
+
+  // Profile photo update function
+  const updateProfilePhoto = async (formData, onProgress = () => {}) => {
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    try {
+      console.log("Starting profile photo upload");
+
+      const formDataWithMetadata = new FormData();
+      formDataWithMetadata.append("file", formData.get("file"));
+      formDataWithMetadata.append("folder", "profile-photos"); // Add folder information
+      formDataWithMetadata.append("userId", user.uid); // Add user identification
+
+      const uploadResponse = await spotService.uploadMedia(
+        formDataWithMetadata,
+        (progress) => {
+          onProgress(progress / 100);
+        }
+      );
+
+      if (!uploadResponse || !uploadResponse.url) {
+        throw new Error("Upload failed - no URL returned");
+      }
+
+      console.log("Image upload successful, URL:", uploadResponse.url);
+
+      // Store only the URL reference in Firestore (not the actual image)
+      const userRef = doc(firestore, "users", user.uid);
+      await updateDoc(userRef, {
+        profilePhoto: uploadResponse.url,
+        updatedAt: new Date(),
+      });
+
+      console.log("Firestore profile updated with photo URL reference");
+
+      // Update local userProfile state
+      setUserProfile((prevProfile) => ({
+        ...prevProfile,
+        profilePhoto: uploadResponse.url,
+      }));
+
+      return uploadResponse;
+    } catch (error) {
+      console.error("Error in updateProfilePhoto:", error);
+      throw error;
+    }
+  };
+
+  // Add a spot to favorites
+  const addFavoriteSpot = async (spotId, spotName, spotType) => {
+    if (!user) return;
+
+    try {
+      const userRef = doc(firestore, "users", user.uid);
+
+      // Create a favorite spot object
+      const favoriteSpot = {
+        spotId,
+        spotName,
+        spotType,
+        addedAt: new Date(),
+      };
+
+      // Update Firestore
+      await updateDoc(userRef, {
+        favoriteSpots: arrayUnion(favoriteSpot),
+      });
+
+      // Update local state
+      setUserProfile((prev) => ({
+        ...prev,
+        favoriteSpots: [...(prev.favoriteSpots || []), favoriteSpot],
+      }));
+
+      return true;
+    } catch (error) {
+      console.error("Error adding favorite spot:", error);
+      throw error;
+    }
+  };
+
+  // Remove a spot from favorites
+  const removeFavoriteSpot = async (spotId) => {
+    if (!user) return;
+
+    try {
+      const userRef = doc(firestore, "users", user.uid);
+
+      // Find the favorite spot to remove
+      const spotToRemove = userProfile.favoriteSpots.find(
+        (spot) => spot.spotId === spotId
+      );
+
+      if (!spotToRemove) {
+        throw new Error("Favorite spot not found");
+      }
+
+      // Update Firestore
+      await updateDoc(userRef, {
+        favoriteSpots: arrayRemove(spotToRemove),
+      });
+
+      // Update local state
+      setUserProfile((prev) => ({
+        ...prev,
+        favoriteSpots: prev.favoriteSpots.filter(
+          (spot) => spot.spotId !== spotId
+        ),
+      }));
+
+      return true;
+    } catch (error) {
+      console.error("Error removing favorite spot:", error);
+      throw error;
+    }
+  };
+
+  // Check if a spot is in favorites
+  const isSpotFavorited = (spotId) => {
+    if (!userProfile || !userProfile.favoriteSpots) return false;
+    return userProfile.favoriteSpots.some((spot) => spot.spotId === spotId);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -545,6 +671,10 @@ export function AuthProvider({ children }) {
         removeFriend,
         searchUsers,
         refreshUserProfile: () => fetchUserProfile(user?.uid),
+        updateProfilePhoto,
+        addFavoriteSpot,
+        removeFavoriteSpot,
+        isSpotFavorited,
       }}
     >
       {children}

@@ -254,13 +254,14 @@ const styles = StyleSheet.create({
     width: 180,
     height: 100,
     borderRadius: 5,
+    marginTop: 5,
   },
   viewDetailsText: {
-    color: colors.primary,
+    color: colors.dark,
     fontSize: 12,
     marginTop: 5,
     textAlign: "center",
-    fontStyle: "italic",
+    fontWeight: "bold",
   },
   refreshButton: {
     position: "absolute",

@@ -7,6 +7,8 @@ import {
   Image,
   Modal,
   Alert,
+  FlatList,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +23,7 @@ export default function Profile() {
   const { logout, userProfile, user } = useAuth();
   const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [activeTab, setActiveTab] = useState("friends"); // "friends" or "favorites"
 
   const displayName =
     userProfile?.displayName ||
@@ -32,6 +35,28 @@ export default function Profile() {
     router.push("/logout");
   };
 
+  const navigateToSpot = (spotId) => {
+    router.push(`/spot/${spotId}`);
+  };
+
+  // Render favorite spot item
+  const renderFavoriteSpot = ({ item }) => (
+    <TouchableOpacity
+      style={styles.favoriteSpotItem}
+      onPress={() => navigateToSpot(item.spotId)}
+    >
+      <View style={styles.favoriteSpotInfo}>
+        <View style={styles.spotTypeIndicator}>
+          <Text style={styles.spotTypeText}>
+            {item.spotType?.charAt(0) || "S"}
+          </Text>
+        </View>
+        <Text style={styles.spotName}>{item.spotName}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
@@ -42,65 +67,130 @@ export default function Profile() {
         />
       </View>
 
-      <View style={styles.profileSection}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar} />
-          <Text style={styles.username}>{displayName}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.profileSection}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar} />
+            <Text style={styles.username}>{displayName}</Text>
+          </View>
+
+          <View style={styles.statsContainer}>
+            <Text style={styles.statsText}>
+              Saved spots: {userProfile?.favoriteSpots?.length || 0}
+            </Text>
+            <Text style={styles.statsText}>
+              Friends: {userProfile?.friends?.length || 0}
+            </Text>
+            <Text style={styles.statsText}>
+              User since:{" "}
+              {userProfile?.createdAt
+                ? new Date(
+                    userProfile.createdAt.toDate?.() || userProfile.createdAt
+                  ).getFullYear()
+                : "2025"}
+            </Text>
+          </View>
         </View>
 
-        <View style={styles.statsContainer}>
-          <Text style={styles.statsText}>
-            Saved spots: {userProfile?.favoriteSkateparks?.length || 0}
-          </Text>
-          <Text style={styles.statsText}>
-            Friends: {userProfile?.friends?.length || 0}
-          </Text>
-          <Text style={styles.statsText}>
-            User since:{" "}
-            {userProfile?.createdAt
-              ? new Date(
-                  userProfile.createdAt.toDate?.() || userProfile.createdAt
-                ).getFullYear()
-              : "2025"}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.friendsSection}>
-        <View style={styles.friendsHeader}>
-          <Text style={styles.friendsTitle}>
-            Friends ({userProfile?.friends?.length || 0})
-          </Text>
+        <View style={styles.tabsContainer}>
           <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowFriendSearch(true)}
+            style={[styles.tab, activeTab === "friends" && styles.activeTab]}
+            onPress={() => setActiveTab("friends")}
           >
-            <Text style={styles.addButtonText}>Add</Text>
-            <Ionicons name="person-add" size={20} color={colors.dark} />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "friends" && styles.activeTabText,
+              ]}
+            >
+              Friends
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === "favorites" && styles.activeTab]}
+            onPress={() => setActiveTab("favorites")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "favorites" && styles.activeTabText,
+              ]}
+            >
+              Favorite Spots
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {userProfile?.friends?.length > 0 ? (
-          <View style={styles.friendsGrid}>
-            {userProfile.friends.slice(0, 4).map((friend, index) => (
-              <View key={index} style={styles.friendAvatar}>
-                <Text style={styles.avatarInitial}>
-                  {friend.displayName.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            ))}
-            {userProfile.friends.length > 4 && (
-              <TouchableOpacity style={styles.moreFriends}>
-                <Text style={styles.moreFriendsText}>
-                  +{userProfile.friends.length - 4}
-                </Text>
+        {activeTab === "friends" ? (
+          <View style={styles.friendsSection}>
+            <View style={styles.friendsHeader}>
+              <Text style={styles.friendsTitle}>
+                Friends ({userProfile?.friends?.length || 0})
+              </Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowFriendSearch(true)}
+              >
+                <Text style={styles.addButtonText}>Add</Text>
+                <Ionicons name="person-add" size={20} color={colors.dark} />
               </TouchableOpacity>
+            </View>
+
+            {userProfile?.friends?.length > 0 ? (
+              <View style={styles.friendsGrid}>
+                {userProfile.friends.slice(0, 4).map((friend, index) => (
+                  <View key={index} style={styles.friendAvatar}>
+                    <Text style={styles.avatarInitial}>
+                      {friend.displayName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                ))}
+                {userProfile.friends.length > 4 && (
+                  <TouchableOpacity style={styles.moreFriends}>
+                    <Text style={styles.moreFriendsText}>
+                      +{userProfile.friends.length - 4}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.noFriendsText}>
+                You haven't added any friends yet. Tap 'Add' to find friends.
+              </Text>
             )}
           </View>
         ) : (
-          <Text style={styles.noFriendsText}>
-            You haven't added any friends yet. Tap 'Add' to find friends.
-          </Text>
+          <View style={styles.favoritesSection}>
+            <Text style={styles.sectionTitle}>
+              Favorite Spots ({userProfile?.favoriteSpots?.length || 0})
+            </Text>
+
+            {userProfile?.favoriteSpots &&
+            userProfile.favoriteSpots.length > 0 ? (
+              <FlatList
+                data={userProfile.favoriteSpots}
+                renderItem={renderFavoriteSpot}
+                keyExtractor={(item) => item.spotId}
+                scrollEnabled={false}
+                nestedScrollEnabled={true}
+              />
+            ) : (
+              <View style={styles.emptyFavorites}>
+                <Ionicons
+                  name="heart-outline"
+                  size={40}
+                  color={colors.secondary}
+                />
+                <Text style={styles.emptyText}>
+                  You haven't favorited any spots yet.
+                </Text>
+                <Text style={styles.emptySubText}>
+                  Tap the heart icon on a spot to add it to favorites.
+                </Text>
+              </View>
+            )}
+          </View>
         )}
 
         {/* Logout button */}
@@ -109,7 +199,7 @@ export default function Profile() {
           onPress={handleLogout}
           disabled={loggingOut}
         />
-      </View>
+      </ScrollView>
 
       {/* Friend search modal */}
       <Modal
@@ -123,10 +213,14 @@ export default function Profile() {
   );
 }
 
+// Add these styles to the existing StyleSheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.dark,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
     height: 60,
@@ -169,9 +263,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginVertical: 5,
   },
-  friendsSection: {
-    padding: 20,
+  tabsContainer: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.medium,
+    marginBottom: 20,
+  },
+  tab: {
     flex: 1,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+  },
+  tabText: {
+    color: colors.white,
+    fontSize: 16,
+    fontFamily: "SubwayBerlinSC",
+  },
+  activeTabText: {
+    color: colors.primary,
+  },
+  sectionTitle: {
+    color: colors.primary,
+    fontSize: 20,
+    fontFamily: "SubwayBerlinSC",
+    marginBottom: 15,
+    paddingHorizontal: 20,
+  },
+  friendsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  favoritesSection: {
+    marginBottom: 20,
   },
   friendsHeader: {
     flexDirection: "row",
@@ -233,5 +360,56 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     textAlign: "center",
     marginBottom: 30,
+  },
+  favoriteSpotItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.medium,
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    marginHorizontal: 20,
+  },
+  favoriteSpotInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  spotTypeIndicator: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  spotTypeText: {
+    color: colors.dark,
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  spotName: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  emptyFavorites: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 30,
+  },
+  emptyText: {
+    color: colors.secondary,
+    fontSize: 16,
+    textAlign: "center",
+    marginTop: 15,
+  },
+  emptySubText: {
+    color: colors.secondary,
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 5,
+    fontStyle: "italic",
   },
 });

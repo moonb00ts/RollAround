@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -16,12 +17,21 @@ import colors from "./config/colors";
 import { useAuth } from "../context/authContext";
 
 const VideoSelector = ({ onVideoUploaded, spotId }) => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [video, setVideo] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [caption, setCaption] = useState("");
   const videoRef = useRef(null);
+
+  useEffect(() => {
+    console.log("🟢 Auth Debug - User:", {
+      uid: user?.uid,
+      displayName: user?.displayName,
+      email: user?.email,
+    });
+    console.log("🟢 Auth Debug - UserProfile:", userProfile);
+  }, [user, userProfile]);
 
   const pickVideo = async () => {
     try {
@@ -70,6 +80,39 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
     }
   };
 
+  // Get username from auth context
+  const getUserName = () => {
+    console.log("Getting username from auth context");
+
+    // Try userProfile.displayName first (from Firestore)
+    if (userProfile?.displayName) {
+      console.log(
+        "Using displayName from userProfile:",
+        userProfile.displayName
+      );
+      return userProfile.displayName;
+    }
+
+    // Then try user.displayName (from Auth)
+    if (user?.displayName) {
+      console.log("Using displayName from user:", user.displayName);
+      return user.displayName;
+    }
+
+    // Then try email
+    if (user?.email) {
+      const emailName = user.email.split("@")[0];
+      console.log("Using name from email:", emailName);
+      return emailName;
+    }
+
+    // Fallback
+    console.log("No username found, using Anonymous");
+    return "Anonymous";
+  };
+
+  // Replace the uploadVideo function in your VideoSelector component with this version
+
   const uploadVideo = async () => {
     if (!video) {
       Alert.alert("No Video", "Please select a video first.");
@@ -80,6 +123,21 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
     setUploadProgress(0);
 
     try {
+      // Log the entire user object to see what we have
+      console.log("User object:", {
+        uid: user?.uid,
+        displayName: user?.displayName,
+        email: user?.email,
+      });
+      console.log("UserProfile object:", userProfile);
+
+      // Explicitly set the username - make sure it doesn't get lost
+      const userName =
+        userProfile?.displayName ||
+        user?.displayName ||
+        (user?.email ? user.email.split("@")[0] : "Anonymous");
+      console.log("Using userName:", userName);
+
       // Step 1: Upload video to Cloudinary
       const formData = new FormData();
       formData.append("file", {
@@ -98,28 +156,42 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
 
       console.log("Video upload successful:", uploadResult);
 
-      // Step 2: Add video to spot using our new simple approach
+      // Step 2: Add video to spot
       if (spotId) {
-        // Prepare video data with the correct structure
+        // Create payload with explicit fields
         const videoData = {
           url: uploadResult.url,
           thumbnail: uploadResult.thumbnail || uploadResult.url,
           caption: caption.trim(),
           description: "",
-          userId: user.uid,
-          userName: user.displayName || "Anonymous",
+          userName: userName, // Make sure this is included
+          uploadedBy: user?.uid || "unknown",
         };
 
-        console.log("Adding video to spot:", videoData);
+        // Log the exact payload we're sending
+        console.log("Sending video data:", JSON.stringify(videoData, null, 2));
 
-        // Use the simple approach that gets and updates the entire spot
-        await spotService.addVideoToSpot(spotId, videoData);
-        console.log("Video successfully added to spot");
+        // Use your existing spotService
+        const response = await spotService.addVideoToSpot(spotId, videoData);
+        console.log("Server response:", response);
+        console.log(
+          "Video successfully added to spot with username:",
+          userName
+        );
+      } else {
+        console.error("No spotId provided, cannot add video");
+        Alert.alert(
+          "Error",
+          "Could not determine which spot to add this video to."
+        );
+        setIsUploading(false);
+        return;
       }
 
       // Clear the local state
       setVideo(null);
       setCaption("");
+      setUploadProgress(0);
 
       // Notify parent component
       if (onVideoUploaded) {
@@ -135,7 +207,6 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
       );
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 

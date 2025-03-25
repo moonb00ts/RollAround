@@ -5,6 +5,7 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Image,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,9 +45,16 @@ const FriendsList = ({ friends, showRemoveButton = true, onFriendPress }) => {
     >
       <View style={styles.friendInfo}>
         <View style={styles.friendAvatar}>
-          <Text style={styles.avatarText}>
-            {item.displayName.charAt(0).toUpperCase()}
-          </Text>
+          {item.profilePhoto ? (
+            <Image
+              source={{ uri: item.profilePhoto }}
+              style={styles.avatarImage}
+            />
+          ) : (
+            <Text style={styles.avatarText}>
+              {item.displayName.charAt(0).toUpperCase()}
+            </Text>
+          )}
         </View>
         <Text style={styles.friendName}>{item.displayName}</Text>
       </View>
@@ -102,6 +110,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
   },
   avatarText: {
     color: colors.white,

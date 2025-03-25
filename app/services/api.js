@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://10.167.81.75:8000/api";
+const BASE_URL = "http://10.167.106.44:8000/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -199,32 +199,166 @@ export const spotService = {
     }
   },
 
+  // Add video to spot
   addVideoToSpot: async (spotId, videoData) => {
     try {
-      console.log(`Adding video to spot ${spotId} using direct endpoint`);
+      console.log(`Adding video to spot ${spotId}`);
 
-      // Build the video object to send to the server
-      const payload = {
-        url: videoData.url,
-        thumbnail: videoData.thumbnail,
-        caption: videoData.caption,
-        description: videoData.description || "",
-        userId: videoData.userId,
-        userName: videoData.userName || "Anonymous",
+      if (!spotId) {
+        throw new Error("No spotId provided to addVideoToSpot");
+      }
+
+      // Make sure userName is explicitly included - important!
+      if (!videoData.userName) {
+        console.warn("No userName in videoData, this will cause issues");
+      }
+
+      // Log exactly what we're sending
+      console.log("Raw videoData:", videoData);
+      console.log("userName in request:", videoData.userName);
+      console.log("uploadedBy in request:", videoData.uploadedBy);
+
+      // Deep clone to make sure we don't modify the original
+      const payload = JSON.parse(
+        JSON.stringify({
+          url: videoData.url,
+          thumbnail: videoData.thumbnail || videoData.url,
+          caption: videoData.caption || "",
+          description: videoData.description || "",
+          userName: videoData.userName || "Anonymous", // Make sure this is included
+          uploadedBy: videoData.uploadedBy || "unknown",
+        })
+      );
+
+      console.log("Final payload being sent:", payload);
+
+      // Make sure axios sends the right content type
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+        },
       };
 
-      console.log("Video payload:", payload);
+      // Use axios directly with specific config
+      const response = await axios.post(
+        `${BASE_URL}/spots/${spotId}/videos`,
+        payload,
+        config
+      );
 
-      // Use a dedicated endpoint for adding videos
-      const response = await api.post(`/spots/${spotId}/videos`, payload);
+      console.log("Response headers:", response.headers);
+      console.log("Response status:", response.status);
+      console.log("Response data summary:", {
+        videos: response.data?.videos?.length || 0,
+      });
 
-      console.log("Video successfully added to spot");
       return response.data;
     } catch (error) {
       console.error("Error adding video to spot:", error);
+
+      // Enhanced error logging
+      if (error.response) {
+        console.error("Response status:", error.response.status);
+        console.error("Response data:", error.response.data);
+        console.error("Response headers:", error.response.headers);
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+      } else {
+        console.error("Error setting up request:", error.message);
+      }
+
       throw error;
     }
   },
+  incrementVideoLikes: async (spotId, videoId) => {
+    try {
+      console.log(`Incrementing likes for video ${videoId} in spot ${spotId}`);
+
+      if (!spotId) {
+        console.error("No spotId provided to incrementVideoLikes");
+        throw new Error("spotId is required");
+      }
+
+      if (!videoId) {
+        console.error("No videoId provided to incrementVideoLikes");
+        throw new Error("videoId is required");
+      }
+
+      // Send request to increment the like count
+      const response = await api.post(
+        `/spots/${spotId}/videos/${videoId}/like`
+      );
+      console.log("Like increment successful:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error incrementing likes for video ${videoId}:`, error);
+
+      // Detailed error logging
+      if (error.response) {
+        console.error(`Response status: ${error.response.status}`);
+        console.error(`Response data:`, error.response.data);
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+      } else {
+        console.error("Error setting up request:", error.message);
+      }
+
+      throw error;
+    }
+  },
+};
+
+// Add these methods to your existing api.js file
+export const eventService = {
+  // Get all events
+  getAllEvents: () => api.get("/events"),
+
+  // Get events by date range
+  getEventsByDateRange: (startDate, endDate) =>
+    api.get(`/events/range?start=${startDate}&end=${endDate}`),
+
+  // Get single event by ID
+  getEvent: (id) => api.get(`/events/${id}`),
+
+  // Create new event
+  createEvent: (eventData) => api.post("/events", eventData),
+
+  // Update event
+  updateEvent: (id, eventData) => api.patch(`/events/${id}`, eventData),
+
+  // Delete event
+  deleteEvent: (id) => api.delete(`/events/${id}`),
+
+  // Upload image with progress tracking
+  uploadImage: async (formData, onProgress = () => {}) => {
+    try {
+      console.log("Starting image upload for event");
+      const response = await axios.post(`${BASE_URL}/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          onProgress(percentCompleted / 100);
+        },
+        timeout: 30000, // Longer timeout for uploads
+      });
+      console.log("Upload successful:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Upload error", error);
+      console.error("Error response data:", error.response?.data);
+      throw error;
+    }
+  },
+
+  // Get events near a location
+  getNearbyEvents: (latitude, longitude, maxDistance = 10000) =>
+    api.get(
+      `/events/nearby?latitude=${latitude}&longitude=${longitude}&maxDistance=${maxDistance}`
+    ),
 };
 
 export default api;

@@ -1,8 +1,9 @@
+// app/addEvent.js
 import { useAuth } from "./context/authContext";
 import { Redirect } from "expo-router";
-import AddSpotScreen from "./components/AddSpotScreen"; // Spot Adding UI
+import EventForm from "./components/EventForm"; // Our event creation form
 
-export default function AddSpot() {
+export default function AddEvent() {
   const { user, loading } = useAuth();
 
   if (loading) return null;
@@ -12,6 +13,6 @@ export default function AddSpot() {
     return <Redirect href="/" />;
   }
 
-  // User is authenticated, show add spot screen
-  return <AddSpotScreen />;
+  // User is authenticated, show add event form
+  return <EventForm />;
 }

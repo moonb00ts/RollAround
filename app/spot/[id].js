@@ -24,13 +24,16 @@ import VideoSelector from "../components/VideoSelector";
 export default function SpotDetails() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useAuth();
   const [spot, setSpot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showVideoForm, setShowVideoForm] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoritingInProgress, setFavoritingInProgress] = useState(false);
+  const { user, addFavoriteSpot, removeFavoriteSpot, isSpotFavorited } =
+    useAuth();
 
   const handleVideoUploaded = async () => {
     fetchSpotDetails();
@@ -40,6 +43,12 @@ export default function SpotDetails() {
   useEffect(() => {
     fetchSpotDetails();
   }, [id]);
+
+  useEffect(() => {
+    if (spot && user) {
+      setIsFavorite(isSpotFavorited(spot._id));
+    }
+  }, [spot, user, isSpotFavorited]);
 
   const fetchSpotDetails = async () => {
     try {
@@ -80,6 +89,34 @@ export default function SpotDetails() {
       setError(`Failed to load spot details: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFavorite = async () => {
+    if (!user) {
+      Alert.alert("Login Required", "Please login to favorite spots");
+      return;
+    }
+
+    if (favoritingInProgress) return;
+
+    try {
+      setFavoritingInProgress(true);
+
+      if (isFavorite) {
+        await removeFavoriteSpot(spot._id);
+        setIsFavorite(false);
+        Alert.alert("Success", "Spot removed from favorites");
+      } else {
+        await addFavoriteSpot(spot._id, spot.name, spot.spotType);
+        setIsFavorite(true);
+        Alert.alert("Success", "Spot added to favorites");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      Alert.alert("Error", "Failed to update favorites");
+    } finally {
+      setFavoritingInProgress(false);
     }
   };
 
@@ -226,16 +263,28 @@ export default function SpotDetails() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() =>
-                    Alert.alert(
-                      "Coming Soon",
-                      "This feature will be available in a future update."
-                    )
-                  }
+                  style={[
+                    styles.actionButton,
+                    isFavorite ? styles.favoriteActive : null,
+                  ]}
+                  onPress={handleFavorite}
+                  disabled={favoritingInProgress}
                 >
-                  <Ionicons name="heart" size={24} color={colors.dark} />
-                  <Text style={styles.actionButtonText}>Favorite</Text>
+                  <Ionicons
+                    name={isFavorite ? "heart" : "heart-outline"}
+                    size={24}
+                    color={colors.dark}
+                  />
+                  <Text style={styles.actionButtonText}>
+                    {isFavorite ? "Favorited" : "Favorite"}
+                  </Text>
+                  {favoritingInProgress && (
+                    <ActivityIndicator
+                      size="small"
+                      color={colors.dark}
+                      style={{ marginLeft: 5 }}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
 
@@ -266,6 +315,7 @@ export default function SpotDetails() {
                   <VideoClipsList
                     videos={spot.videos || []}
                     spotName={spot.name}
+                    spotId={spot._id}
                   />
                 )}
               </View>
@@ -328,9 +378,11 @@ const styles = StyleSheet.create({
     color: colors.dark,
     fontWeight: "bold",
   },
+  favoriteActive: {
+    backgroundColor: colors.primary,
+  },
   // Back button (update position)
   backButton: {
-    top: 5,
     left: 10,
     width: 40,
     height: 40,
@@ -398,7 +450,7 @@ const styles = StyleSheet.create({
   },
   spotName: {
     color: colors.white,
-    fontSize: 28,
+    fontSize: 30,
     fontFamily: "SubwayBerlinSC",
     flex: 1,
     marginRight: 10,
@@ -441,7 +493,7 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   actionButton: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.secondary,
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
@@ -457,10 +509,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 25,
     fontWeight: "bold",
     color: colors.white,
     fontFamily: "SubwayBerlinSC",
@@ -468,7 +520,7 @@ const styles = StyleSheet.create({
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.secondary,
+    backgroundColor: colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,

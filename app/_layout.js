@@ -41,7 +41,14 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
-          name="addClip"
+          name="event"
+          options={{
+            presentation: "card",
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="addEvent"
           options={{
             presentation: "modal",
             animation: "slide_from_bottom",

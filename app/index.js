@@ -10,6 +10,13 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
+        {/* <View style={styles.logoContainer}>
+          <Image
+            source={require("../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View> */}
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -25,5 +32,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: colors.dark,
+  },
+  logoContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logo: {
+    width: "80%",
+    height: 100,
+    marginBottom: 10,
   },
 });

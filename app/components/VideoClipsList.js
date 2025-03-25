@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,16 +13,43 @@ import { Video } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "./config/colors";
 import { useAuth } from "../context/authContext";
+import { spotService } from "../services/api";
 
 const { width } = Dimensions.get("window");
 
-const VideoFeed = ({ videos = [], spotName = "", onRefresh }) => {
+const VideoClipsList = ({
+  videos = [],
+  spotName = "",
+  spotId = "",
+  onRefresh,
+}) => {
   const { user } = useAuth();
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState({});
-  const [liked, setLiked] = useState({});
+  const [sortedVideos, setSortedVideos] = useState([]);
+  const videoRefs = useRef({});
 
-  const hasVideos = Array.isArray(videos) && videos.length > 0;
+  // Sort videos by date (newest first) whenever the videos prop changes
+  useEffect(() => {
+    if (Array.isArray(videos) && videos.length > 0) {
+      // Create a copy of the videos array to avoid mutating props
+      const videosCopy = [...videos];
+
+      // Sort by createdAt date in descending order (newest first)
+      const sorted = videosCopy.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+        return dateB - dateA; // Descending order (newest first)
+      });
+
+      setSortedVideos(sorted);
+      console.log(`Sorted ${sorted.length} videos by date, newest first`);
+    } else {
+      setSortedVideos([]);
+    }
+  }, [videos]);
+
+  const hasVideos = Array.isArray(sortedVideos) && sortedVideos.length > 0;
 
   if (!hasVideos) {
     return (
@@ -33,8 +60,32 @@ const VideoFeed = ({ videos = [], spotName = "", onRefresh }) => {
     );
   }
 
-  const handleVideoPress = (videoId) => {
-    setActiveVideo(activeVideo === videoId ? null : videoId);
+  const handleVideoPress = async (videoId) => {
+    // Toggle video playback when tapped
+    if (activeVideo === videoId) {
+      // Video is currently active, pause it
+      const videoRef = videoRefs.current[videoId];
+      if (videoRef) {
+        const status = await videoRef.getStatusAsync();
+        if (status.isPlaying) {
+          await videoRef.pauseAsync();
+        } else {
+          await videoRef.playAsync();
+        }
+      }
+    } else {
+      // Different video selected, pause previous and play new one
+      if (activeVideo && videoRefs.current[activeVideo]) {
+        await videoRefs.current[activeVideo].pauseAsync();
+      }
+
+      setActiveVideo(videoId);
+      // Play will be handled in useEffect when video loads
+      const videoRef = videoRefs.current[videoId];
+      if (videoRef) {
+        await videoRef.playAsync();
+      }
+    }
   };
 
   const handleVideoLoad = (videoId) => {
@@ -45,9 +96,35 @@ const VideoFeed = ({ videos = [], spotName = "", onRefresh }) => {
     setLoading((prev) => ({ ...prev, [videoId]: true }));
   };
 
-  const handleLike = (videoId) => {
-    // In a real app, you would call an API to like the video
-    setLiked((prev) => ({ ...prev, [videoId]: !prev[videoId] }));
+  const handleLike = async (videoId, index) => {
+    try {
+      // Optimistically update the UI immediately for responsiveness
+      const updatedVideos = [...sortedVideos];
+      updatedVideos[index] = {
+        ...updatedVideos[index],
+        likeCount: (updatedVideos[index].likeCount || 0) + 1,
+      };
+      setSortedVideos(updatedVideos);
+
+      console.log(`Liking video ${videoId} in spot ${spotId}`);
+
+      // Skip API call if no spotId
+      if (!spotId) {
+        console.warn("No spotId provided, skipping API call");
+        return;
+      }
+
+      // Call API to update the like count in the database
+      try {
+        await spotService.incrementVideoLikes(spotId, videoId);
+        console.log(`Successfully incremented likes for video ${videoId}`);
+      } catch (error) {
+        console.error("Error incrementing likes:", error);
+        // We don't revert the UI since we want unlimited likes regardless
+      }
+    } catch (error) {
+      console.error("Error in handleLike:", error);
+    }
   };
 
   const formatTimestamp = (timestamp) => {
@@ -75,9 +152,28 @@ const VideoFeed = ({ videos = [], spotName = "", onRefresh }) => {
   const renderVideoItem = ({ item, index }) => {
     const videoId = item._id || `video-${index}`;
     const isActive = activeVideo === videoId;
-    const isLiked = liked[videoId];
-    const videoLikes = (item.likeCount || 0) + (isLiked ? 1 : 0);
+    const videoLikes = item.likeCount || 0;
     const uploadDate = item.createdAt || new Date();
+
+    // More robust username determination - try multiple approaches
+    let uploader = "Skater";
+
+    if (
+      item.userName &&
+      typeof item.userName === "string" &&
+      item.userName.trim()
+    ) {
+      uploader = item.userName;
+    } else if (
+      item.uploadedBy &&
+      typeof item.uploadedBy === "string" &&
+      item.uploadedBy.trim()
+    ) {
+      uploader = `User ${item.uploadedBy.substring(0, 5)}...`;
+    } else {
+      // Fallback to a unique name based on index to at least tell videos apart
+      uploader = `Skater ${index + 1}`;
+    }
 
     return (
       <View style={styles.videoCard}>
@@ -85,12 +181,11 @@ const VideoFeed = ({ videos = [], spotName = "", onRefresh }) => {
           <View style={styles.userInfo}>
             <View style={styles.userAvatar}>
               <Text style={styles.avatarText}>
-                {(item.userName && item.userName.charAt(0).toUpperCase()) ||
-                  "S"}
+                {uploader.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View>
-              <Text style={styles.userName}>{item.userName || "Skater"}</Text>
+              <Text style={styles.userName}>{uploader}</Text>
               <Text style={styles.videoTimestamp}>
                 {formatTimestamp(uploadDate)}
               </Text>
@@ -110,60 +205,45 @@ const VideoFeed = ({ videos = [], spotName = "", onRefresh }) => {
           activeOpacity={0.9}
           onPress={() => handleVideoPress(videoId)}
         >
-          {isActive ? (
-            <View style={styles.activeVideoContainer}>
-              <Video
-                source={{ uri: item.url }}
-                style={styles.video}
-                useNativeControls={false}
-                resizeMode="cover"
-                shouldPlay={true}
-                isLooping={true}
-                onLoad={() => handleVideoLoad(videoId)}
-                onLoadStart={() => handleVideoLoadStart(videoId)}
-              />
-              {loading[videoId] && (
-                <ActivityIndicator
-                  size="large"
-                  color={colors.primary}
-                  style={styles.loader}
-                />
-              )}
-              <View style={styles.videoOverlay}>
-                <TouchableOpacity style={styles.playPauseButton}>
-                  <Ionicons name="pause" size={24} color={colors.white} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.thumbnailContainer}>
-              <Image
-                source={{ uri: item.thumbnail || item.url }}
-                style={styles.thumbnail}
-                resizeMode="cover"
-              />
-              <View style={styles.playButtonOverlay}>
-                <Ionicons name="play" size={40} color={colors.white} />
-              </View>
+          <Video
+            ref={(ref) => (videoRefs.current[videoId] = ref)}
+            source={{ uri: item.url }}
+            style={styles.video}
+            useNativeControls={false}
+            resizeMode="cover"
+            shouldPlay={isActive}
+            isLooping={true}
+            onLoad={() => handleVideoLoad(videoId)}
+            onLoadStart={() => handleVideoLoadStart(videoId)}
+          />
+          {loading[videoId] && (
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+              style={styles.loader}
+            />
+          )}
+          {!isActive && (
+            <View style={styles.playButtonOverlay}>
+              <Ionicons name="play" size={40} color={colors.white} />
             </View>
           )}
         </TouchableOpacity>
 
-        {item.caption && <Text style={styles.caption}>{item.caption}</Text>}
+        {/* Add empty space if no caption */}
+        {item.caption ? (
+          <Text style={styles.caption}>{item.caption}</Text>
+        ) : (
+          <View style={styles.captionPlaceholder} />
+        )}
 
         <View style={styles.actionBar}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleLike(videoId)}
+            onPress={() => handleLike(videoId, index)}
           >
-            <Ionicons
-              name={isLiked ? "heart" : "heart-outline"}
-              size={24}
-              color={isLiked ? colors.danger : colors.white}
-            />
-            {videoLikes > 0 && (
-              <Text style={styles.actionCount}>{videoLikes}</Text>
-            )}
+            <Ionicons name="heart" size={24} color={colors.danger} />
+            <Text style={styles.actionCount}>{videoLikes}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionButton}>
@@ -200,7 +280,7 @@ const VideoFeed = ({ videos = [], spotName = "", onRefresh }) => {
 
   return (
     <FlatList
-      data={videos}
+      data={sortedVideos}
       renderItem={renderVideoItem}
       keyExtractor={(item, index) => item._id || `video-${index}`}
       contentContainerStyle={styles.container}
@@ -264,46 +344,25 @@ const styles = StyleSheet.create({
     height: width * 0.75,
     backgroundColor: colors.black,
   },
-  activeVideoContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   video: {
     width: "100%",
     height: "100%",
   },
   loader: {
     position: "absolute",
-  },
-  videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.2)",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-  },
-  playPauseButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  thumbnailContainer: {
-    width: "100%",
-    height: "100%",
-    position: "relative",
-  },
-  thumbnail: {
-    width: "100%",
-    height: "100%",
   },
   playButtonOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
+    right: 30,
   },
   caption: {
     color: colors.white,
@@ -311,6 +370,9 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingTop: 12,
     paddingBottom: 8,
+  },
+  captionPlaceholder: {
+    height: 15, // Space when no caption is present
   },
   actionBar: {
     flexDirection: "row",
@@ -353,4 +415,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default VideoFeed;
+export default VideoClipsList;
