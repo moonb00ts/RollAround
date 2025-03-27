@@ -58,8 +58,9 @@ const FriendsList = ({
           userId={item.userId}
           displayName={item.displayName}
           profilePhoto={item.profilePhoto}
-          size={40}
+          size={48}
           style={styles.avatar}
+          showLoading={true}
         />
         <Text style={styles.friendName}>{item.displayName}</Text>
       </View>

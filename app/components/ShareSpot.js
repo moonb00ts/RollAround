@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -22,6 +22,7 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import UserAvatar from "./UserAvatar";
 
 const ShareSpot = ({ isVisible, onClose, spot }) => {
   const { user, userProfile } = useAuth();
@@ -55,6 +56,7 @@ const ShareSpot = ({ isVisible, onClose, spot }) => {
           from: {
             userId: user.uid,
             displayName: userProfile.displayName || user.email.split("@")[0],
+            profilePhoto: userProfile.profilePhoto || null, // Include profile photo in notification
           },
           to: friendId,
           spotId: spot._id,
@@ -81,11 +83,12 @@ const ShareSpot = ({ isVisible, onClose, spot }) => {
       onPress={() => toggleFriendSelection(item.userId)}
     >
       <View style={styles.friendInfo}>
-        <View style={styles.friendAvatar}>
-          <Text style={styles.avatarText}>
-            {item.displayName.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        <UserAvatar
+          userId={item.userId}
+          displayName={item.displayName}
+          size={40}
+          style={styles.friendAvatar}
+        />
         <Text style={styles.friendName}>{item.displayName}</Text>
       </View>
       <View
@@ -142,7 +145,11 @@ const ShareSpot = ({ isVisible, onClose, spot }) => {
           )}
 
           <TouchableOpacity
-            style={styles.shareButton}
+            style={[
+              styles.shareButton,
+              (loading || selectedFriends.length === 0) &&
+                styles.disabledButton,
+            ]}
             onPress={handleShare}
             disabled={loading || selectedFriends.length === 0}
           >
@@ -231,18 +238,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   friendAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.medium,
-    justifyContent: "center",
-    alignItems: "center",
     marginRight: 10,
-  },
-  avatarText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
   },
   friendName: {
     color: colors.white,
@@ -278,6 +274,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 20,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   shareButtonText: {
     color: colors.dark,

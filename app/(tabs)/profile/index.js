@@ -6,9 +6,9 @@ import {
   TouchableOpacity,
   Image,
   Modal,
-  Alert,
   FlatList,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,20 +17,30 @@ import AppButton from "../../components/AppButton";
 import { useAuth } from "../../context/authContext";
 import FriendSearch from "../../components/FriendSearch";
 import ProfilePhotoUploader from "../../components/ProfilePhotoUploader";
+import FriendsList from "../../components/FriendsList";
+import UserAvatar from "../../components/UserAvatar";
 import { useRouter } from "expo-router";
 
 export default function Profile() {
   const router = useRouter();
   const { logout, userProfile, user, refreshUserProfile } = useAuth();
   const [showFriendSearch, setShowFriendSearch] = useState(false);
+  const [showAllFriends, setShowAllFriends] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [activeTab, setActiveTab] = useState("friends"); // "friends" or "favorites"
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
+  const [friends, setFriends] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Set initial profile photo URL
+  // Set initial profile photo URL and friends
   useEffect(() => {
-    if (userProfile?.profilePhoto) {
-      setProfilePhotoUrl(userProfile.profilePhoto);
+    if (userProfile) {
+      if (userProfile.profilePhoto) {
+        setProfilePhotoUrl(userProfile.profilePhoto);
+      }
+      if (userProfile.friends) {
+        setFriends(userProfile.friends);
+      }
     }
   }, [userProfile]);
 
@@ -52,6 +62,39 @@ export default function Profile() {
     setProfilePhotoUrl(photoUrl);
     // Refresh the user profile to get the updated photo
     await refreshUserProfile();
+  };
+
+  // Handler for when a friend is removed
+  const handleFriendRemoved = (friendId) => {
+    // Update local friends state without needing to refetch from server
+    setFriends((prevFriends) =>
+      prevFriends.filter((friend) => friend.userId !== friendId)
+    );
+    // Close the full friends list modal
+    setShowAllFriends(false);
+  };
+
+  // Handle pull-to-refresh
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh user profile data
+      await refreshUserProfile();
+
+      // Update local state with fresh data
+      if (userProfile) {
+        if (userProfile.profilePhoto) {
+          setProfilePhotoUrl(userProfile.profilePhoto);
+        }
+        if (userProfile.friends) {
+          setFriends(userProfile.friends);
+        }
+      }
+    } catch (error) {
+      console.error("Error refreshing profile:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Render favorite spot item
@@ -82,7 +125,17 @@ export default function Profile() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             <ProfilePhotoUploader onPhotoUpdated={handlePhotoUpdated} />
@@ -141,7 +194,7 @@ export default function Profile() {
           <View style={styles.friendsSection}>
             <View style={styles.friendsHeader}>
               <Text style={styles.friendsTitle}>
-                Friends ({userProfile?.friends?.length || 0})
+                Friends ({friends.length || 0})
               </Text>
               <TouchableOpacity
                 style={styles.addButton}
@@ -152,23 +205,43 @@ export default function Profile() {
               </TouchableOpacity>
             </View>
 
-            {userProfile?.friends?.length > 0 ? (
-              <View style={styles.friendsGrid}>
-                {userProfile.friends.slice(0, 4).map((friend, index) => (
-                  <View key={index} style={styles.friendAvatar}>
-                    <Text style={styles.avatarInitial}>
-                      {friend.displayName.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                ))}
-                {userProfile.friends.length > 4 && (
-                  <TouchableOpacity style={styles.moreFriends}>
-                    <Text style={styles.moreFriendsText}>
-                      +{userProfile.friends.length - 4}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+            {friends.length > 0 ? (
+              <>
+                <View style={styles.friendsGrid}>
+                  {/* Display up to 4 friend avatars using UserAvatar */}
+                  {friends.slice(0, 4).map((friend, index) => (
+                    <View key={index} style={styles.friendAvatarContainer}>
+                      <UserAvatar
+                        userId={friend.userId}
+                        displayName={friend.displayName}
+                        profilePhoto={friend.profilePhoto}
+                        size={60}
+                      />
+                    </View>
+                  ))}
+                  {/* If more than 4 friends, show count indicator */}
+                  {friends.length > 4 && (
+                    <View style={styles.moreFriends}>
+                      <Text style={styles.moreFriendsText}>
+                        +{friends.length - 4}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* See all friends button */}
+                <TouchableOpacity
+                  style={styles.seeAllButton}
+                  onPress={() => setShowAllFriends(true)}
+                >
+                  <Text style={styles.seeAllButtonText}>See All Friends</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              </>
             ) : (
               <Text style={styles.noFriendsText}>
                 You haven't added any friends yet. Tap 'Add' to find friends.
@@ -224,6 +297,31 @@ export default function Profile() {
       >
         <FriendSearch onClose={() => setShowFriendSearch(false)} />
       </Modal>
+
+      {/* Full friends list modal */}
+      <Modal
+        visible={showAllFriends}
+        animationType="slide"
+        onRequestClose={() => setShowAllFriends(false)}
+      >
+        <SafeAreaView style={styles.fullListContainer}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowAllFriends(false)}
+            >
+              <Ionicons name="close" size={24} color={colors.primary} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>All Friends</Text>
+          </View>
+
+          <FriendsList
+            friends={friends}
+            showRemoveButton={true}
+            onFriendRemoved={handleFriendRemoved}
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -233,6 +331,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.dark,
+    padding: 10,
   },
   scrollContent: {
     paddingBottom: 20,
@@ -272,7 +371,8 @@ const styles = StyleSheet.create({
   },
   username: {
     color: colors.primary,
-    fontSize: 24,
+    fontSize: 30,
+    marginTop: 20,
     fontFamily: "SubwayBerlinSC",
   },
   statsContainer: {
@@ -348,33 +448,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
-    marginBottom: 30,
+    marginBottom: 15,
   },
-  friendAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.medium,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarInitial: {
-    color: colors.white,
-    fontSize: 20,
-    fontWeight: "bold",
+  friendAvatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: "hidden",
   },
   moreFriends: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: colors.secondary,
     justifyContent: "center",
     alignItems: "center",
   },
   moreFriendsText: {
     color: colors.dark,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
+  },
+  seeAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  seeAllButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    marginRight: 5,
   },
   noFriendsText: {
     color: colors.secondary,
@@ -431,5 +536,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
     fontStyle: "italic",
+  },
+  fullListContainer: {
+    flex: 1,
+    backgroundColor: colors.dark,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    marginTop: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.medium,
+  },
+  closeButton: {
+    padding: 10,
+  },
+  modalTitle: {
+    flex: 1,
+    color: colors.white,
+    fontSize: 24,
+    fontFamily: "SubwayBerlinSC",
+    textAlign: "center",
+    marginRight: 40, // Offset for the close button to center the title
   },
 });

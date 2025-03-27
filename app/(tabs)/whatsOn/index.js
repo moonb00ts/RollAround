@@ -120,6 +120,11 @@ export default function WhatsOn() {
     dots: [{ color: colors.primary }],
   }));
 
+  // The title text based on selected date
+  const eventsTitle = selectedDate.isSame(moment(), "day")
+    ? "Up next:"
+    : `Events on ${selectedDate.format("MMMM Do")}:`;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -128,9 +133,6 @@ export default function WhatsOn() {
           style={styles.logo}
           resizeMode="contain"
         />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddEvent}>
-          <Ionicons name="add" size={24} color={colors.dark} />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.calendarContainer}>
@@ -173,11 +175,16 @@ export default function WhatsOn() {
             />
           }
           ListHeaderComponent={
-            <Text style={styles.upNextText}>
-              {selectedDate.isSame(moment(), "day")
-                ? "Up next:"
-                : `Events on ${selectedDate.format("MMMM Do")}:`}
-            </Text>
+            <View style={styles.listHeader}>
+              <Text style={styles.upNextText}>{eventsTitle}</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddEvent}
+              >
+                <Ionicons name="add" size={20} color={colors.dark} />
+                <Text style={styles.addButtonText}>Add Event</Text>
+              </TouchableOpacity>
+            </View>
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -209,7 +216,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    borderBottomWidth: 1,
+    borderBottomWidth: 2,
     borderBottomColor: colors.medium,
     paddingHorizontal: 15,
   },
@@ -217,18 +224,9 @@ const styles = StyleSheet.create({
     height: 40,
     width: "50%",
   },
-  addButton: {
-    position: "absolute",
-    right: 15,
-    backgroundColor: colors.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   calendarContainer: {
     paddingTop: 10,
+    overflow: "visible"
   },
   calendar: {
     height: 120,
@@ -267,11 +265,30 @@ const styles = StyleSheet.create({
     padding: 15,
     paddingBottom: 30,
   },
+  listHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
   upNextText: {
     color: "#fff",
     fontSize: 20,
     fontFamily: "SubwayBerlinSC",
-    marginBottom: 15,
+  },
+  addButton: {
+    flexDirection: "row",
+    backgroundColor: colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: colors.dark,
+    fontWeight: "600",
+    fontSize: 14,
+    marginLeft: 4,
   },
   eventCard: {
     backgroundColor: colors.medium,
