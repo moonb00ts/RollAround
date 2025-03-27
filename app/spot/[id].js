@@ -164,7 +164,7 @@ export default function SpotDetails() {
     );
   }
 
-  // Replace the ScrollView with a FlatList for the main content to avoid nesting VirtualizedLists
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>

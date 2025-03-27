@@ -1,4 +1,3 @@
-// app/components/EventForm.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -7,10 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Image,
   Platform,
   KeyboardAvoidingView,
   Alert,
-  Image,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,16 +18,15 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import MapView, { Marker } from "react-native-maps";
 import moment from "moment";
 import colors from "./config/colors";
 import { eventService } from "../services/api";
 import { useAuth } from "../context/authContext";
+import MapComponent from "./MapComponent";
 
 export default function EventForm() {
   const router = useRouter();
   const { user } = useAuth();
-  const mapRef = React.useRef(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState("");
@@ -45,64 +43,14 @@ export default function EventForm() {
   const [image, setImage] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  useEffect(() => {
-    getUserLocation();
-  }, []);
+  // Define the location change handler
+  const handleLocationChange = (newLocation) => {
+    setLocation(newLocation);
+  };
 
-  const getUserLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Please enable location services to set event location"
-        );
-        return;
-      }
-
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const userLocation = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      };
-
-      setLocation(userLocation);
-
-      // Animate map to user location
-      mapRef.current?.animateToRegion(
-        {
-          ...userLocation,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        1000
-      );
-
-      // Try to get address from coordinates
-      try {
-        const [addressData] = await Location.reverseGeocodeAsync(userLocation);
-        if (addressData) {
-          const addressComponents = [
-            addressData.street,
-            addressData.city,
-            addressData.region,
-            addressData.postalCode,
-          ].filter(Boolean);
-          setAddress(addressComponents.join(", "));
-        }
-      } catch (error) {
-        console.log("Error getting address:", error);
-      }
-    } catch (error) {
-      console.log("Error getting location:", error);
-      Alert.alert(
-        "Location Error",
-        "Unable to get your location. Please try again."
-      );
-    }
+  // Define the address change handler
+  const handleAddressChange = (newAddress) => {
+    setAddress(newAddress);
   };
 
   const handleClose = () => {
@@ -194,27 +142,6 @@ export default function EventForm() {
     }
   };
 
-  const handleMapPress = async (e) => {
-    const newLocation = e.nativeEvent.coordinate;
-    setLocation(newLocation);
-
-    // Try to get address from coordinates
-    try {
-      const [addressData] = await Location.reverseGeocodeAsync(newLocation);
-      if (addressData) {
-        const addressComponents = [
-          addressData.street,
-          addressData.city,
-          addressData.region,
-          addressData.postalCode,
-        ].filter(Boolean);
-        setAddress(addressComponents.join(", "));
-      }
-    } catch (error) {
-      console.log("Error getting address:", error);
-    }
-  };
-
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(Platform.OS === "ios");
@@ -256,42 +183,40 @@ export default function EventForm() {
 
     setIsSubmitting(true);
 
-  try {
-    // Combine date and time
-    const eventDateTime = new Date(date);
-    eventDateTime.setHours(time.getHours(), time.getMinutes());
+    try {
+      // Combine date and time
+      const eventDateTime = new Date(date);
+      eventDateTime.setHours(time.getHours(), time.getMinutes());
 
-    const eventData = {
-      title: title.trim(),
-      description: description.trim(),
-      date: eventDateTime.toISOString(),
-      image: image.cloudinaryUrl,
-      location: {
-        type: "Point",
-        coordinates: [location.longitude, location.latitude],
-        address: address.trim(),
-      },
-      userId: user.uid, // Current user as organizer
-    };
+      const eventData = {
+        title: title.trim(),
+        description: description.trim(),
+        date: eventDateTime.toISOString(),
+        image: image.cloudinaryUrl,
+        location: {
+          type: "Point",
+          coordinates: [location.longitude, location.latitude],
+          address: address.trim(),
+        },
+        userId: user.uid, // Current user as organizer
+      };
 
-    // Add this logging
-    console.log("Submitting event data:", JSON.stringify(eventData, null, 2));
+      console.log("Submitting event data:", JSON.stringify(eventData, null, 2));
 
-    const response = await eventService.createEvent(eventData);
-    
-    Alert.alert("Success", "Event added successfully!", [
-      { text: "OK", onPress: () => router.back() },
-    ]);
-  } catch (error) {
-    // Enhance error logging
-    console.error("Submission error:", error);
-    console.error("Error response:", error.response?.data);
-    
-    Alert.alert("Error", `Failed to submit event: ${error.message}`);
-  } finally {
-    setIsSubmitting(false);
-  }
+      const response = await eventService.createEvent(eventData);
 
+      Alert.alert("Success", "Event added successfully!", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      // Enhance error logging
+      console.error("Submission error:", error);
+      console.error("Error response:", error.response?.data);
+
+      Alert.alert("Error", `Failed to submit event: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -424,28 +349,15 @@ export default function EventForm() {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Location</Text>
-            <TextInput
-              style={styles.input}
-              value={address}
-              onChangeText={setAddress}
-              placeholder="Enter location address"
-              placeholderTextColor="#999"
+            <MapComponent
+              initialLocation={location}
+              onLocationChange={handleLocationChange}
+              onAddressChange={handleAddressChange}
+              address={address}
+              placeholder="Search for event location"
+              fullscreen={true}
+              mapStyle={styles.enhancedMap}
             />
-            <View style={styles.mapContainer}>
-              <MapView
-                ref={mapRef}
-                style={styles.map}
-                initialRegion={{
-                  ...location,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                onPress={handleMapPress}
-              >
-                <Marker coordinate={location} />
-              </MapView>
-            </View>
-            <Text style={styles.mapHelper}>Tap to set event location</Text>
           </View>
 
           <TouchableOpacity

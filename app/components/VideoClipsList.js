@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
@@ -14,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import colors from "./config/colors";
 import { useAuth } from "../context/authContext";
 import { spotService } from "../services/api";
+import UserAvatar from "./UserAvatar";
 
 const { width } = Dimensions.get("window");
 
@@ -155,7 +155,7 @@ const VideoClipsList = ({
     const videoLikes = item.likeCount || 0;
     const uploadDate = item.createdAt || new Date();
 
-    // More robust username determination - try multiple approaches
+    // More robust username determination
     let uploader = "Skater";
 
     if (
@@ -171,7 +171,7 @@ const VideoClipsList = ({
     ) {
       uploader = `User ${item.uploadedBy.substring(0, 5)}...`;
     } else {
-      // Fallback to a unique name based on index to at least tell videos apart
+      // Fallback to a unique name based on index
       uploader = `Skater ${index + 1}`;
     }
 
@@ -179,11 +179,12 @@ const VideoClipsList = ({
       <View style={styles.videoCard}>
         <View style={styles.videoHeader}>
           <View style={styles.userInfo}>
-            <View style={styles.userAvatar}>
-              <Text style={styles.avatarText}>
-                {uploader.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            <UserAvatar
+              userId={item.uploadedBy}
+              displayName={uploader}
+              profilePhoto={item.profilePhoto}
+              size={36}
+            />
             <View>
               <Text style={styles.userName}>{uploader}</Text>
               <Text style={styles.videoTimestamp}>
@@ -313,28 +314,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  userAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.light,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  avatarText: {
-    color: colors.white,
-    fontWeight: "bold",
-    fontSize: 16,
-  },
   userName: {
     color: colors.white,
     fontWeight: "bold",
     fontSize: 14,
+    marginLeft: 10,
   },
   videoTimestamp: {
     color: colors.secondary,
     fontSize: 12,
+    marginLeft: 10,
   },
   moreButton: {
     padding: 5,

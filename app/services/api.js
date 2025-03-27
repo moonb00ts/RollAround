@@ -361,4 +361,50 @@ export const eventService = {
     ),
 };
 
+export const userService = {
+  // Upload profile photo
+  uploadProfilePhoto: async (formData, onProgress = () => {}) => {
+    try {
+      console.log("Starting profile photo upload via userService");
+      const response = await axios.post(`${BASE_URL}/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: onProgress
+          ? (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              onProgress(percentCompleted);
+            }
+          : undefined,
+        timeout: 30000, // Longer timeout for uploads
+      });
+
+      console.log("Profile photo upload successful:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Profile photo upload error:", error);
+      if (error.response) {
+        console.error("Response status:", error.response.status);
+        console.error("Response data:", error.response.data);
+      } else if (error.request) {
+        console.error("No response received");
+      } else {
+        console.error("Error setting up request:", error.message);
+      }
+      throw error;
+    }
+  },
+
+  // Get user profile - can be expanded later for other user operations
+  getUserProfile: (userId) => api.get(`/users/${userId}`),
+
+  // Update user profile
+  updateUserProfile: (userId, profileData) =>
+    api.put(`/users/${userId}`, profileData),
+
+  // Other user-related API calls can be added here
+};
+
 export default api;

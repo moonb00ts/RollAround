@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,14 +16,23 @@ import colors from "../../components/config/colors";
 import AppButton from "../../components/AppButton";
 import { useAuth } from "../../context/authContext";
 import FriendSearch from "../../components/FriendSearch";
+import ProfilePhotoUploader from "../../components/ProfilePhotoUploader";
 import { useRouter } from "expo-router";
 
 export default function Profile() {
   const router = useRouter();
-  const { logout, userProfile, user } = useAuth();
+  const { logout, userProfile, user, refreshUserProfile } = useAuth();
   const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [activeTab, setActiveTab] = useState("friends"); // "friends" or "favorites"
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
+
+  // Set initial profile photo URL
+  useEffect(() => {
+    if (userProfile?.profilePhoto) {
+      setProfilePhotoUrl(userProfile.profilePhoto);
+    }
+  }, [userProfile]);
 
   const displayName =
     userProfile?.displayName ||
@@ -37,6 +46,12 @@ export default function Profile() {
 
   const navigateToSpot = (spotId) => {
     router.push(`/spot/${spotId}`);
+  };
+
+  const handlePhotoUpdated = async (photoUrl) => {
+    setProfilePhotoUrl(photoUrl);
+    // Refresh the user profile to get the updated photo
+    await refreshUserProfile();
   };
 
   // Render favorite spot item
@@ -70,7 +85,7 @@ export default function Profile() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <View style={styles.avatar} />
+            <ProfilePhotoUploader onPhotoUpdated={handlePhotoUpdated} />
             <Text style={styles.username}>{displayName}</Text>
           </View>
 
@@ -249,6 +264,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   username: {
     color: colors.primary,

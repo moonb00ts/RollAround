@@ -21,6 +21,7 @@ import {
 } from "firebase/firestore";
 import * as SecureStore from "expo-secure-store";
 import { router } from "expo-router";
+import { userService } from "../services/api";
 
 const AuthContext = createContext({});
 export const useAuth = () => useContext(AuthContext);
@@ -231,6 +232,50 @@ export function AuthProvider({ children }) {
       return true;
     } catch (error) {
       console.error("Logout error:", error);
+      throw error;
+    }
+  };
+
+  const updateProfilePhoto = async (formData, onProgress = () => {}) => {
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+
+    try {
+      console.log("Starting profile photo upload with userService");
+
+      // Use the dedicated userService.uploadProfilePhoto function
+      const uploadResponse = await userService.uploadProfilePhoto(
+        formData,
+        (progress) => {
+          onProgress(progress / 100);
+        }
+      );
+
+      if (!uploadResponse || !uploadResponse.url) {
+        throw new Error("Upload failed - no URL returned");
+      }
+
+      console.log("Image upload successful, URL:", uploadResponse.url);
+
+      // Store only the URL reference in Firestore (not the actual image)
+      const userRef = doc(firestore, "users", user.uid);
+      await updateDoc(userRef, {
+        profilePhoto: uploadResponse.url,
+        updatedAt: new Date(),
+      });
+
+      console.log("Firestore profile updated with photo URL reference");
+
+      // Update local userProfile state
+      setUserProfile((prevProfile) => ({
+        ...prevProfile,
+        profilePhoto: uploadResponse.url,
+      }));
+
+      return uploadResponse;
+    } catch (error) {
+      console.error("Error in updateProfilePhoto:", error);
       throw error;
     }
   };
@@ -526,57 +571,6 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error("Error searching users:", error);
       console.error(error.stack); // Log the full stack trace
-      throw error;
-    }
-  };
-
-  //ADD/UPDATE PROFILE PHOTO
-
-  // Profile photo update function
-  const updateProfilePhoto = async (formData, onProgress = () => {}) => {
-    if (!user) {
-      throw new Error("User not authenticated");
-    }
-
-    try {
-      console.log("Starting profile photo upload");
-
-      const formDataWithMetadata = new FormData();
-      formDataWithMetadata.append("file", formData.get("file"));
-      formDataWithMetadata.append("folder", "profile-photos"); // Add folder information
-      formDataWithMetadata.append("userId", user.uid); // Add user identification
-
-      const uploadResponse = await spotService.uploadMedia(
-        formDataWithMetadata,
-        (progress) => {
-          onProgress(progress / 100);
-        }
-      );
-
-      if (!uploadResponse || !uploadResponse.url) {
-        throw new Error("Upload failed - no URL returned");
-      }
-
-      console.log("Image upload successful, URL:", uploadResponse.url);
-
-      // Store only the URL reference in Firestore (not the actual image)
-      const userRef = doc(firestore, "users", user.uid);
-      await updateDoc(userRef, {
-        profilePhoto: uploadResponse.url,
-        updatedAt: new Date(),
-      });
-
-      console.log("Firestore profile updated with photo URL reference");
-
-      // Update local userProfile state
-      setUserProfile((prevProfile) => ({
-        ...prevProfile,
-        profilePhoto: uploadResponse.url,
-      }));
-
-      return uploadResponse;
-    } catch (error) {
-      console.error("Error in updateProfilePhoto:", error);
       throw error;
     }
   };

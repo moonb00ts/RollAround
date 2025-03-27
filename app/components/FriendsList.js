@@ -5,14 +5,19 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "./config/colors";
 import { useAuth } from "../context/authContext";
+import UserAvatar from "./UserAvatar";
 
-const FriendsList = ({ friends, showRemoveButton = true, onFriendPress }) => {
+const FriendsList = ({
+  friends,
+  showRemoveButton = true,
+  onFriendPress,
+  onFriendRemoved,
+}) => {
   const { removeFriend } = useAuth();
 
   const handleRemoveFriend = (friendId, friendName) => {
@@ -28,9 +33,14 @@ const FriendsList = ({ friends, showRemoveButton = true, onFriendPress }) => {
             try {
               await removeFriend(friendId);
               Alert.alert("Success", "Friend removed");
+
+              // Notify parent component if callback provided
+              if (onFriendRemoved) {
+                onFriendRemoved(friendId);
+              }
             } catch (error) {
+              console.error("Error removing friend:", error);
               Alert.alert("Error", "Failed to remove friend");
-              console.error(error);
             }
           },
         },
@@ -44,18 +54,13 @@ const FriendsList = ({ friends, showRemoveButton = true, onFriendPress }) => {
       onPress={onFriendPress ? () => onFriendPress(item) : null}
     >
       <View style={styles.friendInfo}>
-        <View style={styles.friendAvatar}>
-          {item.profilePhoto ? (
-            <Image
-              source={{ uri: item.profilePhoto }}
-              style={styles.avatarImage}
-            />
-          ) : (
-            <Text style={styles.avatarText}>
-              {item.displayName.charAt(0).toUpperCase()}
-            </Text>
-          )}
-        </View>
+        <UserAvatar
+          userId={item.userId}
+          displayName={item.displayName}
+          profilePhoto={item.profilePhoto}
+          size={40}
+          style={styles.avatar}
+        />
         <Text style={styles.friendName}>{item.displayName}</Text>
       </View>
 
@@ -102,24 +107,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  friendAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.medium,
-    justifyContent: "center",
-    alignItems: "center",
+  avatar: {
     marginRight: 10,
-    overflow: "hidden",
-  },
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-  },
-  avatarText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: "bold",
   },
   friendName: {
     color: colors.white,

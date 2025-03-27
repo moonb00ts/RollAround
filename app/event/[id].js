@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -193,6 +194,7 @@ export default function EventDetails() {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 5,
     flex: 1,
     backgroundColor: colors.dark,
   },
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: 10,
+    top: 60,
     left: 10,
     width: 40,
     height: 40,

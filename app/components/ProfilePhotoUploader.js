@@ -12,7 +12,6 @@ import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/authContext";
 import colors from "./config/colors";
-import { spotService } from "../services/api";
 
 const ProfilePhotoUploader = ({ onPhotoUpdated }) => {
   const { user, userProfile, updateProfilePhoto } = useAuth();
@@ -45,9 +44,7 @@ const ProfilePhotoUploader = ({ onPhotoUpdated }) => {
 
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType
-          ? [ImagePicker.MediaType.Images]
-          : "Images",
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -76,9 +73,7 @@ const ProfilePhotoUploader = ({ onPhotoUpdated }) => {
 
     try {
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaType
-          ? [ImagePicker.MediaType.Images]
-          : "Images",
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -111,7 +106,11 @@ const ProfilePhotoUploader = ({ onPhotoUpdated }) => {
         name: `profile.${fileType}`,
       });
 
-      // Use the updateProfilePhoto function from AuthContext
+      // Add user ID to the form data for better backend tracking
+      formData.append("userId", user.uid);
+      formData.append("type", "profile");
+
+      // Use the updateProfilePhoto function from AuthContext which now uses userService
       const uploadResponse = await updateProfilePhoto(formData, (progress) => {
         setUploadProgress(progress);
       });

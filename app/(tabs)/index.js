@@ -146,6 +146,7 @@ export default function SpotsMap() {
         style={styles.map}
         region={region}
         onRegionChangeComplete={setRegion}
+        showsUserLocation={true}
       >
         {spots.map((spot) => {
           if (!spot?.location?.coordinates) return null;

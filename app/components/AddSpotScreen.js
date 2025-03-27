@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,16 +14,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AppText from "../components/AppText";
-import MapView, { Marker } from "react-native-maps";
 import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "../components/config/colors";
 import { spotService } from "../services/api";
+import MapComponent from "../components/MapComponent";
 
 export default function AddSpot() {
   const router = useRouter();
-  const mapRef = useRef(null);
   const [uploadProgress, setUploadProgress] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [spotName, setSpotName] = useState("");
@@ -32,58 +30,22 @@ export default function AddSpot() {
     latitude: 51.4414,
     longitude: -2.6036,
   });
+  const [address, setAddress] = useState("");
   const [images, setImages] = useState([]);
   const [spotType, setSpotType] = useState("");
 
-  useEffect(() => {
-    getUserLocation();
-  }, []);
+  // Define the location change handler
+  const handleLocationChange = (newLocation) => {
+    setLocation(newLocation);
+  };
 
-  const getUserLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Please enable location services to add a spot"
-        );
-        return;
-      }
-
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const userLocation = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      };
-
-      setLocation(userLocation);
-
-      // Animate map to user location
-      mapRef.current?.animateToRegion(
-        {
-          ...userLocation,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        1000
-      );
-    } catch (error) {
-      console.log("Error getting location:", error);
-      Alert.alert(
-        "Location Error",
-        "Unable to get your location. Please try again."
-      );
-    }
+  // Define the address change handler
+  const handleAddressChange = (newAddress) => {
+    setAddress(newAddress);
   };
 
   const handleClose = () => {
     // Enhanced close button handler
-    console.log("Close button pressed");
-
-    // Check if there's unsaved work
     const hasUnsavedWork = spotName || description || images.length > 0;
 
     if (hasUnsavedWork) {
@@ -199,6 +161,32 @@ export default function AddSpot() {
       return;
     }
 
+    // Validate form fields
+    if (!spotName.trim()) {
+      Alert.alert("Missing Information", "Please enter a spot name.");
+      return;
+    }
+
+    if (!description.trim()) {
+      Alert.alert("Missing Information", "Please provide a description.");
+      return;
+    }
+
+    if (!spotType) {
+      Alert.alert("Missing Information", "Please select a spot type.");
+      return;
+    }
+
+    if (!location.latitude || !location.longitude) {
+      Alert.alert("Missing Information", "Please set a location on the map.");
+      return;
+    }
+
+    if (images.length === 0) {
+      Alert.alert("Missing Information", "Please add at least one image.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -208,8 +196,7 @@ export default function AddSpot() {
         location: {
           type: "Point",
           coordinates: [location.longitude, location.latitude],
-          address:
-            location.address || "123 Some Street, Some City, Some Country",
+          address: address || "Location address unavailable",
         },
         spotType: spotType,
         images: images
@@ -272,7 +259,6 @@ export default function AddSpot() {
                     spotType === type && styles.selectedTypeButton,
                   ]}
                   onPress={() => {
-                    console.log(type);
                     setSpotType(type);
                   }}
                 >
@@ -304,21 +290,15 @@ export default function AddSpot() {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Location</Text>
-            <View style={styles.mapContainer}>
-              <MapView
-                ref={mapRef}
-                style={styles.map}
-                initialRegion={{
-                  ...location,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                onPress={(e) => setLocation(e.nativeEvent.coordinate)}
-              >
-                <Marker coordinate={location} />
-              </MapView>
-            </View>
-            <Text style={styles.mapHelper}>Tap to set spot location</Text>
+            <MapComponent
+              initialLocation={location}
+              onLocationChange={handleLocationChange}
+              onAddressChange={handleAddressChange}
+              address={address}
+              placeholder="Search for skate spot location"
+              fullscreen={true}
+              mapStyle={styles.enhancedMap}
+            />
           </View>
 
           <View style={styles.inputContainer}>
@@ -391,19 +371,8 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: "top",
   },
-  mapContainer: {
-    height: 200,
-    borderRadius: 8,
-    overflow: "hidden",
-    marginBottom: 8,
-  },
-  map: {
-    flex: 1,
-  },
-  mapHelper: {
-    color: colors.secondary,
-    fontSize: 12,
-    textAlign: "center",
+  enhancedMap: {
+    marginTop: 10,
   },
   imageScroll: {
     flexGrow: 0,
