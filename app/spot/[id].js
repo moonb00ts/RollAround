@@ -30,9 +30,9 @@ export default function SpotDetails() {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showVideoForm, setShowVideoForm] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [favoritingInProgress, setFavoritingInProgress] = useState(false);
-  const { user, addFavoriteSpot, removeFavoriteSpot, isSpotFavorited } =
+  const [isFavourite, setIsFavourite] = useState(false);
+  const [favouritingInProgress, setFavouritingInProgress] = useState(false);
+  const { user, addFavouriteSpot, removeFavouriteSpot, isSpotFavourited } =
     useAuth();
 
   const handleVideoUploaded = async () => {
@@ -46,9 +46,9 @@ export default function SpotDetails() {
 
   useEffect(() => {
     if (spot && user) {
-      setIsFavorite(isSpotFavorited(spot._id));
+      setIsFavourite(isSpotFavourited(spot._id));
     }
-  }, [spot, user, isSpotFavorited]);
+  }, [spot, user, isSpotFavourited]);
 
   const fetchSpotDetails = async () => {
     try {
@@ -92,31 +92,31 @@ export default function SpotDetails() {
     }
   };
 
-  const handleFavorite = async () => {
+  const handleFavourite = async () => {
     if (!user) {
-      Alert.alert("Login Required", "Please login to favorite spots");
+      Alert.alert("Login Required", "Please login to favourite spots");
       return;
     }
 
-    if (favoritingInProgress) return;
+    if (favouritingInProgress) return;
 
     try {
-      setFavoritingInProgress(true);
+      setFavouritingInProgress(true);
 
-      if (isFavorite) {
-        await removeFavoriteSpot(spot._id);
-        setIsFavorite(false);
-        Alert.alert("Success", "Spot removed from favorites");
+      if (isFavourite) {
+        await removeFavouriteSpot(spot._id);
+        setIsFavourite(false);
+        Alert.alert("Success", "Spot removed from favourites");
       } else {
-        await addFavoriteSpot(spot._id, spot.name, spot.spotType);
-        setIsFavorite(true);
-        Alert.alert("Success", "Spot added to favorites");
+        await addFavouriteSpot(spot._id, spot.name, spot.spotType);
+        setIsFavourite(true);
+        Alert.alert("Success", "Spot added to favourites");
       }
     } catch (error) {
-      console.error("Error toggling favorite:", error);
-      Alert.alert("Error", "Failed to update favorites");
+      console.error("Error toggling favourite:", error);
+      Alert.alert("Error", "Failed to update favourites");
     } finally {
-      setFavoritingInProgress(false);
+      setFavouritingInProgress(false);
     }
   };
 
@@ -147,6 +147,7 @@ export default function SpotDetails() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          <Text style={styles.backButton}>Back</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -163,7 +164,6 @@ export default function SpotDetails() {
       </SafeAreaView>
     );
   }
-
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -239,15 +239,6 @@ export default function SpotDetails() {
                 )}
               </View>
 
-              {/* <View style={styles.location}>
-                <Ionicons name="location" size={18} color={colors.primary} />
-                <Text style={styles.locationText}>
-                  {spot.location && spot.location.address
-                    ? spot.location.address
-                    : "Location not available"}
-                </Text>
-              </View> */}
-
               <View style={styles.descriptionContainer}>
                 <Text style={styles.sectionTitle}>Description</Text>
                 <Text style={styles.description}>{spot.description}</Text>
@@ -265,20 +256,20 @@ export default function SpotDetails() {
                 <TouchableOpacity
                   style={[
                     styles.actionButton,
-                    isFavorite ? styles.favoriteActive : null,
+                    isFavourite ? styles.favouriteActive : null,
                   ]}
-                  onPress={handleFavorite}
-                  disabled={favoritingInProgress}
+                  onPress={handleFavourite}
+                  disabled={favouritingInProgress}
                 >
                   <Ionicons
-                    name={isFavorite ? "heart" : "heart-outline"}
+                    name={isFavourite ? "heart" : "heart-outline"}
                     size={24}
                     color={colors.dark}
                   />
                   <Text style={styles.actionButtonText}>
-                    {isFavorite ? "Favorited" : "Favorite"}
+                    {isFavourite ? "Favourited" : "Favourite"}
                   </Text>
-                  {favoritingInProgress && (
+                  {favouritingInProgress && (
                     <ActivityIndicator
                       size="small"
                       color={colors.dark}
@@ -378,7 +369,7 @@ const styles = StyleSheet.create({
     color: colors.dark,
     fontWeight: "bold",
   },
-  favoriteActive: {
+  favouriteActive: {
     backgroundColor: colors.primary,
   },
   // Back button (update position)
@@ -395,6 +386,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    color: "white",
   },
   imageContainer: {
     width: "100%",

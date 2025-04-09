@@ -7,12 +7,15 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
+  Modal,
+  Alert,
+  Platform,
 } from "react-native";
 import { Video } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "./config/colors";
 import { useAuth } from "../context/authContext";
-import { spotService } from "../services/api";
+import { spotService, reportService } from "../services/api";
 import UserAvatar from "./UserAvatar";
 
 const { width } = Dimensions.get("window");
@@ -28,6 +31,11 @@ const VideoClipsList = ({
   const [loading, setLoading] = useState({});
   const [sortedVideos, setSortedVideos] = useState([]);
   const videoRefs = useRef({});
+
+  // State for options menu
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(null);
 
   // Sort videos by date (newest first) whenever the videos prop changes
   useEffect(() => {
@@ -149,6 +157,149 @@ const VideoClipsList = ({
     }
   };
 
+  // Show options menu for a video
+  const handleOptionsPress = (video, index) => {
+    setSelectedVideo(video);
+    setSelectedVideoIndex(index);
+    setOptionsVisible(true);
+  };
+
+  // Check if the current user is the uploader of the video
+  const isUploader = (video) => {
+    if (!user || !video) return false;
+    return video.uploadedBy === user.uid;
+  };
+
+  // Handle deleting a video
+  const handleDeleteVideo = async () => {
+    if (!selectedVideo || !spotId) {
+      setOptionsVisible(false);
+      return;
+    }
+
+    Alert.alert(
+      "Delete Video",
+      "Are you sure you want to delete this video? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setOptionsVisible(false);
+
+              // Make API call to delete the video
+              await spotService.deleteVideoFromSpot(spotId, selectedVideo._id);
+
+              // Remove the video from the local state
+              const updatedVideos = sortedVideos.filter(
+                (v, i) => i !== selectedVideoIndex
+              );
+              setSortedVideos(updatedVideos);
+
+              // Refresh the parent component if callback exists
+              if (onRefresh) onRefresh();
+
+              Alert.alert("Success", "Video deleted successfully");
+            } catch (error) {
+              console.error("Error deleting video:", error);
+              Alert.alert("Error", "Failed to delete video. Please try again.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle reporting a video
+  const handleReportVideo = () => {
+    if (!selectedVideo) {
+      setOptionsVisible(false);
+      return;
+    }
+
+    Alert.alert("Report Video", "Why are you reporting this video?", [
+      {
+        text: "Inappropriate Content",
+        onPress: () => submitReport("Inappropriate Content"),
+      },
+      {
+        text: "Copyright Violation",
+        onPress: () => submitReport("Copyright Violation"),
+      },
+      {
+        text: "Other Issue",
+        onPress: () => showReportForm(),
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  // Show a simple prompt for "Other" reports
+  const showReportForm = () => {
+    setOptionsVisible(false);
+
+    // For platforms that support Alert.prompt (iOS)
+    if (Platform.OS === "ios") {
+      Alert.prompt(
+        "Report Details",
+        "Please provide more information about why you're reporting this video:",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Submit",
+            onPress: (additionalInfo) =>
+              submitReport("Other Issue", additionalInfo),
+          },
+        ],
+        "plain-text"
+      );
+    } else {
+      // For Android, just use a simple reason
+      submitReport("Other Issue", "");
+    }
+  };
+
+  const submitReport = async (reason, additionalInfo = "") => {
+    if (!selectedVideo || !user) {
+      setOptionsVisible(false);
+      return;
+    }
+
+    try {
+      setOptionsVisible(false);
+
+      // Show processing indicator
+      Alert.alert("Processing", "Submitting your report...");
+
+      // Prepare report data
+      const reportData = {
+        contentType: "video",
+        contentId: selectedVideo._id,
+        spotId: spotId,
+        reportedBy: user.uid,
+        reason: reason,
+        additionalInfo: additionalInfo,
+      };
+
+      // Submit the report using the report service
+      await reportService.submitReport(reportData);
+
+      // Show success message
+      Alert.alert(
+        "Thank You",
+        "Your report has been submitted and will be reviewed."
+      );
+    } catch (error) {
+      console.error("Error reporting video:", error);
+      Alert.alert("Error", "Failed to submit report. Please try again.");
+    }
+  };
+
   const renderVideoItem = ({ item, index }) => {
     const videoId = item._id || `video-${index}`;
     const isActive = activeVideo === videoId;
@@ -192,7 +343,10 @@ const VideoClipsList = ({
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.moreButton}>
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => handleOptionsPress(item, index)}
+          >
             <Ionicons
               name="ellipsis-horizontal"
               size={20}
@@ -280,16 +434,64 @@ const VideoClipsList = ({
   };
 
   return (
-    <FlatList
-      data={sortedVideos}
-      renderItem={renderVideoItem}
-      keyExtractor={(item, index) => item._id || `video-${index}`}
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
-      onRefresh={onRefresh}
-      refreshing={false}
-    />
+    <>
+      <FlatList
+        data={sortedVideos}
+        renderItem={renderVideoItem}
+        keyExtractor={(item, index) => item._id || `video-${index}`}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        onRefresh={onRefresh}
+        refreshing={false}
+      />
+
+      {/* Options Modal */}
+      <Modal
+        visible={optionsVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setOptionsVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setOptionsVisible(false)}
+        >
+          <View style={styles.optionsContainer}>
+            {isUploader(selectedVideo) ? (
+              // Options for video uploader
+              <TouchableOpacity
+                style={styles.optionItem}
+                onPress={handleDeleteVideo}
+              >
+                <Ionicons name="trash" size={24} color={colors.danger} />
+                <Text style={[styles.optionText, { color: colors.danger }]}>
+                  Delete Video
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              // Options for other users
+              <TouchableOpacity
+                style={styles.optionItem}
+                onPress={handleReportVideo}
+              >
+                <Ionicons name="flag" size={24} color={colors.secondary} />
+                <Text style={styles.optionText}>Report Video</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => setOptionsVisible(false)}
+            >
+              <Ionicons name="close-circle" size={24} color={colors.primary} />
+              <Text style={styles.optionText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 };
 
@@ -401,6 +603,37 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     marginTop: 10,
     textAlign: "center",
+  },
+
+  // Styles for options modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  optionsContainer: {
+    width: "80%",
+    backgroundColor: colors.dark,
+    borderRadius: 10,
+    padding: 15,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.medium,
+  },
+  optionText: {
+    color: colors.white,
+    fontSize: 16,
+    marginLeft: 15,
   },
 });
 

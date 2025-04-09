@@ -27,7 +27,7 @@ export default function Profile() {
   const [showFriendSearch, setShowFriendSearch] = useState(false);
   const [showAllFriends, setShowAllFriends] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [activeTab, setActiveTab] = useState("friends"); // "friends" or "favorites"
+  const [activeTab, setActiveTab] = useState("friends"); // "friends" or "favourites"
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
   const [friends, setFriends] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -97,13 +97,13 @@ export default function Profile() {
     }
   };
 
-  // Render favorite spot item
-  const renderFavoriteSpot = ({ item }) => (
+  // Render favourite spot item
+  const renderfavouriteSpot = ({ item }) => (
     <TouchableOpacity
-      style={styles.favoriteSpotItem}
+      style={styles.favouriteSpotItem}
       onPress={() => navigateToSpot(item.spotId)}
     >
-      <View style={styles.favoriteSpotInfo}>
+      <View style={styles.favouriteSpotInfo}>
         <View style={styles.spotTypeIndicator}>
           <Text style={styles.spotTypeText}>
             {item.spotType?.charAt(0) || "S"}
@@ -144,7 +144,7 @@ export default function Profile() {
 
           <View style={styles.statsContainer}>
             <Text style={styles.statsText}>
-              Saved spots: {userProfile?.favoriteSpots?.length || 0}
+              Saved spots: {userProfile?.favouriteSpots?.length || 0}
             </Text>
             <Text style={styles.statsText}>
               Friends: {userProfile?.friends?.length || 0}
@@ -176,16 +176,16 @@ export default function Profile() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tab, activeTab === "favorites" && styles.activeTab]}
-            onPress={() => setActiveTab("favorites")}
+            style={[styles.tab, activeTab === "favourites" && styles.activeTab]}
+            onPress={() => setActiveTab("favourites")}
           >
             <Text
               style={[
                 styles.tabText,
-                activeTab === "favorites" && styles.activeTabText,
+                activeTab === "favourites" && styles.activeTabText,
               ]}
             >
-              Favorite Spots
+              Favourite Spots
             </Text>
           </TouchableOpacity>
         </View>
@@ -249,32 +249,32 @@ export default function Profile() {
             )}
           </View>
         ) : (
-          <View style={styles.favoritesSection}>
+          <View style={styles.favouritesSection}>
             <Text style={styles.sectionTitle}>
-              Favorite Spots ({userProfile?.favoriteSpots?.length || 0})
+              favourite Spots ({userProfile?.favouriteSpots?.length || 0})
             </Text>
 
-            {userProfile?.favoriteSpots &&
-            userProfile.favoriteSpots.length > 0 ? (
+            {userProfile?.favouriteSpots &&
+            userProfile.favouriteSpots.length > 0 ? (
               <FlatList
-                data={userProfile.favoriteSpots}
-                renderItem={renderFavoriteSpot}
+                data={userProfile.favouriteSpots}
+                renderItem={renderfavouriteSpot}
                 keyExtractor={(item) => item.spotId}
                 scrollEnabled={false}
                 nestedScrollEnabled={true}
               />
             ) : (
-              <View style={styles.emptyFavorites}>
+              <View style={styles.emptyfavourites}>
                 <Ionicons
                   name="heart-outline"
                   size={40}
                   color={colors.secondary}
                 />
                 <Text style={styles.emptyText}>
-                  You haven't favorited any spots yet.
+                  You haven't favourited any spots yet.
                 </Text>
                 <Text style={styles.emptySubText}>
-                  Tap the heart icon on a spot to add it to favorites.
+                  Tap the heart icon on a spot to add it to favourites.
                 </Text>
               </View>
             )}
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-  favoritesSection: {
+  favouritesSection: {
     marginBottom: 20,
   },
   friendsHeader: {
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 30,
   },
-  favoriteSpotItem: {
+  favouriteSpotItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 20,
   },
-  favoriteSpotInfo: {
+  favouriteSpotInfo: {
     flexDirection: "row",
     alignItems: "center",
   },
@@ -519,7 +519,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
   },
-  emptyFavorites: {
+  emptyfavourites: {
     alignItems: "center",
     justifyContent: "center",
     padding: 30,

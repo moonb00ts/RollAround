@@ -15,6 +15,9 @@ export default {
       firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
       firebaseAppId: process.env.FIREBASE_APP_ID,
       firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID,
+      eas: {
+        projectId: "34f3c528-f2ec-4c28-9df7-38ddeb048992",
+      },
     },
 
     android: {
@@ -24,5 +27,7 @@ export default {
     ios: {
       bundleIdentifier: "com.rollAround.firebase",
     },
+
+    owner: "moonb00ts",
   },
 };

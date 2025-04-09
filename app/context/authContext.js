@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
           friends: [],
           friendRequests: [],
           createdAt: new Date(),
-          favoriteSpots: [],
+          favouriteSpots: [],
         };
         await setDoc(userRef, newProfile);
         setUserProfile(newProfile);
@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
         friends: [],
         friendRequests: [],
         createdAt: new Date(),
-        favoriteSpots: [],
+        favouriteSpots: [],
       });
     }
   };
@@ -202,7 +202,7 @@ export function AuthProvider({ children }) {
         friends: [],
         friendRequests: [],
         createdAt: new Date(),
-        favoriteSkateparks: [],
+        favouriteSkateparks: [],
       };
 
       await setDoc(userRef, newProfile);
@@ -575,15 +575,15 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Add a spot to favorites
-  const addFavoriteSpot = async (spotId, spotName, spotType) => {
+  // Add a spot to favourites
+  const addFavouriteSpot = async (spotId, spotName, spotType) => {
     if (!user) return;
 
     try {
       const userRef = doc(firestore, "users", user.uid);
 
-      // Create a favorite spot object
-      const favoriteSpot = {
+      // Create a favourite spot object
+      const favouriteSpot = {
         spotId,
         spotName,
         spotType,
@@ -592,62 +592,62 @@ export function AuthProvider({ children }) {
 
       // Update Firestore
       await updateDoc(userRef, {
-        favoriteSpots: arrayUnion(favoriteSpot),
+        favouriteSpots: arrayUnion(favouriteSpot),
       });
 
       // Update local state
       setUserProfile((prev) => ({
         ...prev,
-        favoriteSpots: [...(prev.favoriteSpots || []), favoriteSpot],
+        favouriteSpots: [...(prev.favouriteSpots || []), favouriteSpot],
       }));
 
       return true;
     } catch (error) {
-      console.error("Error adding favorite spot:", error);
+      console.error("Error adding favourite spot:", error);
       throw error;
     }
   };
 
-  // Remove a spot from favorites
-  const removeFavoriteSpot = async (spotId) => {
+  // Remove a spot from favourites
+  const removeFavouriteSpot = async (spotId) => {
     if (!user) return;
 
     try {
       const userRef = doc(firestore, "users", user.uid);
 
-      // Find the favorite spot to remove
-      const spotToRemove = userProfile.favoriteSpots.find(
+      // Find the favourite spot to remove
+      const spotToRemove = userProfile.favouriteSpots.find(
         (spot) => spot.spotId === spotId
       );
 
       if (!spotToRemove) {
-        throw new Error("Favorite spot not found");
+        throw new Error("Favourite spot not found");
       }
 
       // Update Firestore
       await updateDoc(userRef, {
-        favoriteSpots: arrayRemove(spotToRemove),
+        favouriteSpots: arrayRemove(spotToRemove),
       });
 
       // Update local state
       setUserProfile((prev) => ({
         ...prev,
-        favoriteSpots: prev.favoriteSpots.filter(
+        favouriteSpots: prev.favouriteSpots.filter(
           (spot) => spot.spotId !== spotId
         ),
       }));
 
       return true;
     } catch (error) {
-      console.error("Error removing favorite spot:", error);
+      console.error("Error removing favourite spot:", error);
       throw error;
     }
   };
 
-  // Check if a spot is in favorites
-  const isSpotFavorited = (spotId) => {
-    if (!userProfile || !userProfile.favoriteSpots) return false;
-    return userProfile.favoriteSpots.some((spot) => spot.spotId === spotId);
+  // Check if a spot is in favourites
+  const isSpotFavourited = (spotId) => {
+    if (!userProfile || !userProfile.favouriteSpots) return false;
+    return userProfile.favouriteSpots.some((spot) => spot.spotId === spotId);
   };
 
   return (
@@ -666,9 +666,9 @@ export function AuthProvider({ children }) {
         searchUsers,
         refreshUserProfile: () => fetchUserProfile(user?.uid),
         updateProfilePhoto,
-        addFavoriteSpot,
-        removeFavoriteSpot,
-        isSpotFavorited,
+        addFavouriteSpot,
+        removeFavouriteSpot,
+        isSpotFavourited,
       }}
     >
       {children}

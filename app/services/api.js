@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://10.167.106.44:8000/api";
+const BASE_URL = "https://rollaround-api-97260150d5d4.herokuapp.com/api";
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -270,6 +270,43 @@ export const spotService = {
       throw error;
     }
   },
+
+  //Delete video from spot
+
+  deleteVideoFromSpot: async (spotId, videoId) => {
+    try {
+      console.log(`Deleting video ${videoId} from spot ${spotId}`);
+
+      if (!spotId) {
+        console.error("No spotId provided to deleteVideoFromSpot");
+        throw new Error("spotId is required");
+      }
+
+      if (!videoId) {
+        console.error("No videoId provided to deleteVideoFromSpot");
+        throw new Error("videoId is required");
+      }
+
+      // Send request to delete the video
+      const response = await api.delete(`/spots/${spotId}/videos/${videoId}`);
+      console.log("Video deletion successful:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error(`Error deleting video ${videoId}:`, error);
+
+      // Detailed error logging
+      if (error.response) {
+        console.error(`Response status: ${error.response.status}`);
+        console.error(`Response data:`, error.response.data);
+      } else if (error.request) {
+        console.error("No response received:", error.request);
+      } else {
+        console.error("Error setting up request:", error.message);
+      }
+
+      throw error;
+    }
+  },
   incrementVideoLikes: async (spotId, videoId) => {
     try {
       console.log(`Incrementing likes for video ${videoId} in spot ${spotId}`);
@@ -405,6 +442,24 @@ export const userService = {
     api.put(`/users/${userId}`, profileData),
 
   // Other user-related API calls can be added here
+};
+
+//REPORT SERVICE
+export const reportService = {
+  // Submit a report
+  submitReport: async (reportData) => {
+    try {
+      console.log("Submitting report:", reportData);
+      const response = await api.post("/reports", reportData);
+      console.log("Report submitted successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to submit report";
+      throw new Error(errorMessage);
+    }
+  },
 };
 
 export default api;

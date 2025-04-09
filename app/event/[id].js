@@ -186,8 +186,6 @@ export default function EventDetails() {
           </View>
         </View>
       </ScrollView>
-
-      {/* Bottom section with share option could go here if needed in future */}
     </SafeAreaView>
   );
 }

@@ -10,6 +10,7 @@ import {
   TextInput,
   Modal,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker, Callout } from "react-native-maps";
 import { spotService } from "../services/api";
@@ -282,7 +283,7 @@ export default function SpotsMap() {
         visible={searchModalVisible}
         onRequestClose={() => setSearchModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Search Spots</Text>
@@ -330,7 +331,7 @@ export default function SpotsMap() {
                 <Text style={styles.loadingText}>Searching...</Text>
               </View>
             ) : searchResults.length > 0 ? (
-              <View style={styles.resultsContainer}>
+              <KeyboardAvoidingView style={styles.resultsContainer}>
                 {searchResults.map((spot) => (
                   <TouchableOpacity
                     key={spot._id}
@@ -350,7 +351,7 @@ export default function SpotsMap() {
                     />
                   </TouchableOpacity>
                 ))}
-              </View>
+              </KeyboardAvoidingView>
             ) : searchQuery.length > 0 ? (
               <View style={styles.emptyResults}>
                 <Ionicons name="search" size={40} color={colors.secondary} />
@@ -365,7 +366,7 @@ export default function SpotsMap() {
               </View>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     padding: 5,
     backgroundColor: "white",
     borderRadius: 15,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.medium,
   },
   markerDot: {
@@ -402,12 +403,15 @@ const styles = StyleSheet.create({
   },
   callout: {
     width: 200,
-    padding: 10,
+    padding: 5,
+    display: "flex",
+    justifyContent: "center",
   },
   calloutTitle: {
-    fontSize: 16,
+    fontSize: 28,
     fontWeight: "bold",
     marginBottom: 5,
+    fontFamily: "SubwayBerlinSC",
   },
   calloutType: {
     fontSize: 14,
@@ -415,7 +419,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   calloutImage: {
-    width: 180,
+    width: 190,
     height: 100,
     borderRadius: 5,
     marginTop: 5,
@@ -423,7 +427,7 @@ const styles = StyleSheet.create({
   viewDetailsText: {
     color: colors.dark,
     fontSize: 12,
-    marginTop: 5,
+    marginTop: 10,
     textAlign: "center",
     fontWeight: "bold",
   },
@@ -477,7 +481,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 30,
-    minHeight: Dimensions.get("window").height * 0.6,
+    minHeight: Dimensions.get("window").height * 0.8,
     maxHeight: Dimensions.get("window").height * 0.8,
   },
   modalHeader: {
