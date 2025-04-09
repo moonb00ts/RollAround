@@ -14,7 +14,8 @@
         "NSLocationWhenInUseUsageDescription": "RollAround needs your location to show you nearby skate spots and help you add new spots accurately.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "RollAround uses your location to show nearby skate spots and help you discover places to skate in your area.",
         "NSLocationAlwaysUsageDescription": "RollAround uses your location to help you find and share skate spots in your area."
-      }
+      },
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
