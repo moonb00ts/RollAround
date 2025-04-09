@@ -29,10 +29,12 @@ const styles = StyleSheet.create({
       width: 0,
       height: 2,
     },
+    maxWidth: 500,
+    minWidth: 300,
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
-
+    alignSelf: "center",
   },
   buttonText: {
     fontFamily: "SubwayBerlinSC", // Just use the font name
