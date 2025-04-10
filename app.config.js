@@ -6,7 +6,7 @@ export default {
     slug: "RollAround",
     version: "1.0.0",
     scheme: "rollaround",
-    newArchEnabled: "true",
+    newArchEnabled: true,
     extra: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,
       firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -21,11 +21,12 @@ export default {
     },
 
     android: {
-      package: "com.rollAround.firebase",
+      package: "com.rollAround.rollAround",
     },
 
     ios: {
-      bundleIdentifier: "com.rollAround.firebase",
+      bundleIdentifier: "com.rollAround.app",
+      icon: "./assets/images/icon.png",
     },
 
     owner: "moonb00ts",

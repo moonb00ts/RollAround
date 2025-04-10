@@ -1,4 +1,4 @@
-package com.moonb00ts.RollAround
+package com.rollAround.rollAround
 
 import android.app.Application
 import android.content.res.Configuration

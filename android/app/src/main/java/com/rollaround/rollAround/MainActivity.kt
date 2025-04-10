@@ -1,4 +1,4 @@
-package com.moonb00ts.RollAround
+package com.rollAround.rollAround
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
