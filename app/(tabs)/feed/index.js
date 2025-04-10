@@ -475,7 +475,9 @@ export default function Home() {
           }
           ListFooterComponent={
             activities.length > 0 ? (
-              <AppText style={styles.footerText}>That's all for now!</AppText>
+              <AppText style={styles.footerText}>
+                Live Activity Feed Coming Soon!
+              </AppText>
             ) : null
           }
         />

@@ -34,8 +34,9 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [authError, setAuthError] = useState(null);
 
-  // Store auth state in secure storage
+  // Store auth state in secure storage - with error handling
   const storeAuthState = async (isAuthenticated) => {
     try {
       await SecureStore.setItemAsync(
@@ -44,10 +45,11 @@ export function AuthProvider({ children }) {
       );
     } catch (error) {
       console.error("Error storing auth state:", error);
+      // Continue without crashing
     }
   };
 
-  // Get stored auth state
+  // Get stored auth state - with better error handling
   const getStoredAuthState = async () => {
     try {
       const storedState = await SecureStore.getItemAsync(AUTH_STATE_KEY);
@@ -58,9 +60,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Fetch user profile data from Firestore
+  // Fetch user profile data from Firestore - with safer error handling
   const fetchUserProfile = async (userId) => {
-    if (!userId) return;
+    if (!userId) return null;
 
     try {
       console.log("Fetching user profile for:", userId);
@@ -71,6 +73,7 @@ export function AuthProvider({ children }) {
         console.log("User profile found");
         const userData = userSnapshot.data();
         setUserProfile(userData);
+        return userData;
       } else {
         console.log("No user profile found, creating one");
         // Create profile if it doesn't exist yet
@@ -81,87 +84,160 @@ export function AuthProvider({ children }) {
           createdAt: new Date(),
           favouriteSpots: [],
         };
-        await setDoc(userRef, newProfile);
-        setUserProfile(newProfile);
+
+        try {
+          await setDoc(userRef, newProfile);
+          setUserProfile(newProfile);
+          return newProfile;
+        } catch (error) {
+          console.error("Error creating new profile:", error);
+          // Still return the profile even if saving failed
+          setUserProfile(newProfile);
+          return newProfile;
+        }
       }
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      setUserProfile({
+      // Create a default profile to prevent null references
+      const defaultProfile = {
         displayName: "",
         friends: [],
         friendRequests: [],
         createdAt: new Date(),
         favouriteSpots: [],
-      });
+      };
+      setUserProfile(defaultProfile);
+      return defaultProfile;
     }
   };
 
-  // Handle navigation based on auth state *
+  // Safer navigation function
+  const safeNavigate = (route) => {
+    try {
+      router.replace(route);
+    } catch (error) {
+      console.error("Navigation error:", error);
+      // Don't let navigation errors crash the app
+    }
+  };
+
+  // Handle auth state changes with better error handling
   const handleAuthStateChange = (currentUser) => {
-    console.log(
-      "Auth state changed:",
-      currentUser ? "logged in" : "logged out"
-    );
-    console.log("Initialized state:", initialized);
+    try {
+      console.log(
+        "Auth state changed:",
+        currentUser ? "logged in" : "logged out"
+      );
+      console.log("Initialized state:", initialized);
 
-    // Update user state
-    setUser(currentUser);
+      // Update user state
+      setUser(currentUser);
 
-    // Store auth state
-    storeAuthState(!!currentUser);
+      // Store auth state (async, but don't await)
+      storeAuthState(!!currentUser);
 
-    // Always attempt to navigate when auth state changes
-    if (currentUser) {
-      // User is logged in, navigate to tabs
-      console.log("Navigating to tabs");
-      router.replace("/(tabs)");
-    } else {
-      // User is logged out, navigate to login
-      console.log("Navigating to login");
-      router.replace("/");
+      // Set initialized to true after the first auth state change
+      setInitialized(true);
+
+      // Navigation is now done in a separate effect to avoid race conditions
+    } catch (error) {
+      console.error("Error in handleAuthStateChange:", error);
+      // Still mark as initialized even if there's an error
+      setInitialized(true);
     }
-
-    // Set initialized to true after the first auth state change
-    setInitialized(true);
   };
 
-  // Check stored auth state on startup
+  // Effect for initial auth check - separated for clarity
   useEffect(() => {
     const checkInitialAuthState = async () => {
-      const { isAuthenticated } = await getStoredAuthState();
-
-      if (!isAuthenticated) {
+      try {
+        const { isAuthenticated } = await getStoredAuthState();
+        if (!isAuthenticated) {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("Error in checkInitialAuthState:", error);
         setLoading(false);
-        // We're already on the login screen
       }
     };
 
     checkInitialAuthState();
   }, []);
 
-  // Set up auth state listener
+  // Effect for Firebase auth listener - more robust
   useEffect(() => {
     console.log("Setting up auth listener");
     let isMounted = true;
+    let unsubscribe = () => {};
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (!isMounted) return;
+    try {
+      unsubscribe = onAuthStateChanged(
+        auth,
+        async (currentUser) => {
+          if (!isMounted) return;
 
-      if (currentUser) {
-        await fetchUserProfile(currentUser.uid);
-      } else {
-        setUserProfile(null);
+          try {
+            // First update the user state
+            setUser(currentUser);
+
+            // Then fetch profile if needed
+            if (currentUser) {
+              await fetchUserProfile(currentUser.uid);
+            } else {
+              setUserProfile(null);
+            }
+
+            // Update auth state
+            handleAuthStateChange(currentUser);
+          } catch (error) {
+            console.error("Error processing auth state change:", error);
+          } finally {
+            // Always update these flags
+            if (isMounted) {
+              setLoading(false);
+            }
+          }
+        },
+        (error) => {
+          console.error("Firebase auth error:", error);
+          if (isMounted) {
+            setAuthError(error.message);
+            setLoading(false);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Error setting up auth listener:", error);
+      if (isMounted) {
+        setAuthError(error.message);
+        setLoading(false);
       }
-
-      handleAuthStateChange(currentUser);
-      setLoading(false);
-    });
+    }
 
     return () => {
       isMounted = false;
-      unsubscribe();
+      try {
+        unsubscribe();
+      } catch (error) {
+        console.error("Error in auth unsubscribe:", error);
+      }
     };
-  }, [initialized]);
+  }, []); // Remove dependency on initialized
+
+  // Handle navigation based on auth state - as a separate effect
+  useEffect(() => {
+    if (initialized && !loading) {
+      if (user) {
+        // User is logged in, navigate to tabs
+        console.log("Navigating to tabs");
+        setTimeout(() => safeNavigate("/(tabs)"), 100);
+      } else {
+        // User is logged out, navigate to login
+        console.log("Navigating to login");
+        setTimeout(() => safeNavigate("/"), 100);
+      }
+    }
+  }, [initialized, loading, user]);
 
   const login = async (email, password) => {
     try {
@@ -202,7 +278,7 @@ export function AuthProvider({ children }) {
         friends: [],
         friendRequests: [],
         createdAt: new Date(),
-        favouriteSkateparks: [],
+        favouriteSpots: [],
       };
 
       await setDoc(userRef, newProfile);
@@ -219,7 +295,12 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     console.log("Logout requested");
     try {
-      console.log("Current user before signout:", user.displayName);
+      if (user) {
+        console.log(
+          "Current user before signout:",
+          user.displayName || user.email
+        );
+      }
 
       // First clear our states
       setUserProfile(null);
@@ -227,7 +308,7 @@ export function AuthProvider({ children }) {
       // Then sign out from Firebase
       await signOut(auth);
       console.log("Firebase signout complete");
-      router.replace("/");
+      safeNavigate("/");
       // Auth state listener will handle the rest
       return true;
     } catch (error) {
@@ -281,7 +362,6 @@ export function AuthProvider({ children }) {
   };
 
   // Friend request functions
-  // Updated sendFriendRequest function for authContext.js
   const sendFriendRequest = async (friendId) => {
     if (!user) return;
 
@@ -575,9 +655,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Add a spot to favourites
+  // Add a spot to favourites with better error handling
   const addFavouriteSpot = async (spotId, spotName, spotType) => {
-    if (!user) return;
+    if (!user) return false;
 
     try {
       const userRef = doc(firestore, "users", user.uid);
@@ -595,33 +675,37 @@ export function AuthProvider({ children }) {
         favouriteSpots: arrayUnion(favouriteSpot),
       });
 
-      // Update local state
-      setUserProfile((prev) => ({
-        ...prev,
-        favouriteSpots: [...(prev.favouriteSpots || []), favouriteSpot],
-      }));
+      // Update local state with null safety
+      setUserProfile((prev) => {
+        if (!prev) return { favouriteSpots: [favouriteSpot] };
+        return {
+          ...prev,
+          favouriteSpots: [...(prev.favouriteSpots || []), favouriteSpot],
+        };
+      });
 
       return true;
     } catch (error) {
       console.error("Error adding favourite spot:", error);
-      throw error;
+      return false;
     }
   };
 
-  // Remove a spot from favourites
+  // Remove a spot from favourites with better error handling
   const removeFavouriteSpot = async (spotId) => {
-    if (!user) return;
+    if (!user) return false;
 
     try {
       const userRef = doc(firestore, "users", user.uid);
 
-      // Find the favourite spot to remove
-      const spotToRemove = userProfile.favouriteSpots.find(
+      // Find the favourite spot to remove with null safety
+      const spotToRemove = userProfile?.favouriteSpots?.find(
         (spot) => spot.spotId === spotId
       );
 
       if (!spotToRemove) {
-        throw new Error("Favourite spot not found");
+        console.warn("Favourite spot not found:", spotId);
+        return false;
       }
 
       // Update Firestore
@@ -629,25 +713,31 @@ export function AuthProvider({ children }) {
         favouriteSpots: arrayRemove(spotToRemove),
       });
 
-      // Update local state
-      setUserProfile((prev) => ({
-        ...prev,
-        favouriteSpots: prev.favouriteSpots.filter(
-          (spot) => spot.spotId !== spotId
-        ),
-      }));
+      // Update local state with null safety
+      setUserProfile((prev) => {
+        if (!prev) return { favouriteSpots: [] };
+        return {
+          ...prev,
+          favouriteSpots: (prev.favouriteSpots || []).filter(
+            (spot) => spot.spotId !== spotId
+          ),
+        };
+      });
 
       return true;
     } catch (error) {
       console.error("Error removing favourite spot:", error);
-      throw error;
+      return false;
     }
   };
 
-  // Check if a spot is in favourites
+  // Check if a spot is in favourites with null safety
   const isSpotFavourited = (spotId) => {
     if (!userProfile || !userProfile.favouriteSpots) return false;
-    return userProfile.favouriteSpots.some((spot) => spot.spotId === spotId);
+
+    return userProfile.favouriteSpots.some((spot) => {
+      return spot && spot.spotId === spotId;
+    });
   };
 
   return (
@@ -669,6 +759,7 @@ export function AuthProvider({ children }) {
         addFavouriteSpot,
         removeFavouriteSpot,
         isSpotFavourited,
+        authError,
       }}
     >
       {children}
