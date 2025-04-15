@@ -33,6 +33,7 @@ export default {
       developmentClient: false,
       bundleIdentifier: "com.rollAround.app",
       icon: "./assets/images/icon.png",
+      supportsTablet: false,
     },
 
     owner: "moonb00ts",

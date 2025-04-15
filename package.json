@@ -6,7 +6,8 @@
     "postinstall": "patch-package",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "start": "expo start --dev-client"
+    "start": "expo start --dev-client",
+    "clean-build-ios": "EXPO_NO_DEV_LAUNCHER=1 sh ios-prebuild.sh && EXPO_NO_DEV_LAUNCHER=1 npx eas-cli build --platform ios --profile production --local"
   },
   "jest": {
     "preset": "jest-expo"
@@ -24,10 +25,10 @@
     "expo-av": "^15.0.2",
     "expo-blur": "~14.0.3",
     "expo-constants": "~17.0.5",
-    "expo-dev-client": "~5.0.20",
-    "expo-dev-menu": "^6.0.25",
     "expo-font": "~13.0.3",
     "expo-haptics": "~14.0.1",
+    "expo-image": "~2.0.7",
+    "expo-image-loader": "~5.0.0",
     "expo-image-picker": "^16.0.6",
     "expo-linking": "~7.0.5",
     "expo-location": "^18.0.6",

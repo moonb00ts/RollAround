@@ -10,6 +10,7 @@
     "newArchEnabled": false,
     "developmentClient": false,
     "ios": {
+      "excludedModules": ["expo-dev-launcher", "expo-dev-client"],
       "developmentClient": false,
       "supportsTablet": true,
       "infoPlist": {
