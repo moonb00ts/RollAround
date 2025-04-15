@@ -7,7 +7,7 @@ import { firestore } from "../firebase";
  * @param {string} userId - The Firebase userId of the user to fetch
  * @returns {Object} An object containing the loading state, error if any, and the user profile data
  */
-export function useUserProfile(userId) {
+export default function useUserProfile(userId) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

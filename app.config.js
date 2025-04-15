@@ -6,7 +6,12 @@ export default {
     slug: "RollAround",
     version: "1.0.0",
     scheme: "rollaround",
-    newArchEnabled: true,
+    newArchEnabled: false,
+    developmentClient: false,
+    updates: {
+      url: "https://u.expo.dev/34f3c528-f2ec-4c28-9df7-38ddeb048992",
+    },
+    runtimeVersion: "1.0.0",
     extra: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,
       firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -25,6 +30,7 @@ export default {
     },
 
     ios: {
+      developmentClient: false,
       bundleIdentifier: "com.rollAround.app",
       icon: "./assets/images/icon.png",
     },

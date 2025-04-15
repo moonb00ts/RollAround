@@ -4,6 +4,14 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "local": {
+      "distribution": "store",
+      "ios": {
+        "simulator": false,
+        "buildConfiguration": "Release"
+      },
+      "developmentClient": false
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
@@ -12,7 +20,13 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "distribution": "store",
+      "autoIncrement": true,
+      "developmentClient": false,
+      "channel": "production",
+      "env": {
+        "EXPO_NO_DEV_LAUNCHER": "1"
+      }
     }
   },
   "submit": {
