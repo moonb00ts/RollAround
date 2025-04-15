@@ -12,7 +12,7 @@
     "ios": {
       "excludedModules": ["expo-dev-launcher", "expo-dev-client"],
       "developmentClient": false,
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "RollAround needs your location to show you nearby skate spots and help you add new spots accurately.",
@@ -25,7 +25,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0B2621"
       }
     },
     "web": {
@@ -42,7 +42,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#0B2621"
         }
       ]
     ],

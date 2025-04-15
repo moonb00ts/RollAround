@@ -7,7 +7,7 @@
     "local": {
       "distribution": "store",
       "ios": {
-        "simulator": false,
+        "simulator": true,
         "buildConfiguration": "Release"
       },
       "developmentClient": false

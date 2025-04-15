@@ -32,7 +32,6 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="rollaround"/>
         <data android:scheme="com.rollAround.rollAround"/>
-        <data android:scheme="exp+rollaround"/>
       </intent-filter>
     </activity>
   </application>
