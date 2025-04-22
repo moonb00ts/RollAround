@@ -17,6 +17,8 @@ import colors from "./config/colors";
 import { useAuth } from "../context/authContext";
 import { spotService, reportService } from "../services/api";
 import UserAvatar from "./UserAvatar";
+import UniversalReportModal from "./ReportModal";
+import { filterBlockedContent } from "../utils/blockingUtils";
 
 const { width } = Dimensions.get("window");
 
@@ -26,16 +28,18 @@ const VideoClipsList = ({
   spotId = "",
   onRefresh,
 }) => {
-  const { user } = useAuth();
+  const { user, userProfile, blockUser, isUserBlocked } = useAuth();
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState({});
   const [sortedVideos, setSortedVideos] = useState([]);
   const videoRefs = useRef({});
+  const [blockedUsers, setBlockedUsers] = useState({});
 
   // State for options menu
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   // Sort videos by date (newest first) whenever the videos prop changes
   useEffect(() => {
@@ -50,12 +54,25 @@ const VideoClipsList = ({
         return dateB - dateA; // Descending order (newest first)
       });
 
-      setSortedVideos(sorted);
-      console.log(`Sorted ${sorted.length} videos by date, newest first`);
+      // Filter out videos from blocked users
+      const blockedUserIds =
+        userProfile?.blockedUsers?.map((user) => user.userId) || [];
+      const filteredVideos = filterBlockedContent(
+        sorted,
+        blockedUserIds,
+        "uploadedBy"
+      );
+
+      setSortedVideos(filteredVideos);
+      console.log(
+        `Sorted and filtered ${filteredVideos.length} videos (${
+          sorted.length - filteredVideos.length
+        } removed)`
+      );
     } else {
       setSortedVideos([]);
     }
-  }, [videos]);
+  }, [videos, userProfile?.blockedUsers]);
 
   const hasVideos = Array.isArray(sortedVideos) && sortedVideos.length > 0;
 
@@ -67,6 +84,63 @@ const VideoClipsList = ({
       </View>
     );
   }
+
+  const handleBlockUser = async () => {
+    if (!selectedVideo || !user) {
+      setOptionsVisible(false);
+      return;
+    }
+
+    const videoUserId = selectedVideo.uploadedBy;
+    const userName = selectedVideo.userName || "This user";
+
+    if (!videoUserId) {
+      Alert.alert("Error", "Cannot identify the user who posted this video");
+      setOptionsVisible(false);
+      return;
+    }
+
+    // Confirm with the user before blocking
+    Alert.alert(
+      `Block ${userName}?`,
+      `You won't see content from this user anymore, and they won't be able to see your content or interact with you.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block User",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setOptionsVisible(false);
+
+              // Call the blockUser function from Auth context
+              await blockUser(videoUserId);
+
+              // Update local state to reflect the block
+              setBlockedUsers((prev) => ({
+                ...prev,
+                [videoUserId]: true,
+              }));
+
+              // Show confirmation
+              Alert.alert(
+                "User Blocked",
+                `You have blocked ${userName}. Their content will no longer be visible to you.`
+              );
+
+              // Refresh the list if callback provided
+              if (onRefresh) {
+                onRefresh();
+              }
+            } catch (error) {
+              console.error("Error blocking user:", error);
+              Alert.alert("Error", "Failed to block user. Please try again.");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleVideoPress = async (videoId) => {
     // Toggle video playback when tapped
@@ -212,92 +286,16 @@ const VideoClipsList = ({
     );
   };
 
-  // Handle reporting a video
+  //handle reporting
   const handleReportVideo = () => {
     if (!selectedVideo) {
       setOptionsVisible(false);
       return;
     }
 
-    Alert.alert("Report Video", "Why are you reporting this video?", [
-      {
-        text: "Inappropriate Content",
-        onPress: () => submitReport("Inappropriate Content"),
-      },
-      {
-        text: "Copyright Violation",
-        onPress: () => submitReport("Copyright Violation"),
-      },
-      {
-        text: "Other Issue",
-        onPress: () => showReportForm(),
-      },
-      { text: "Cancel", style: "cancel" },
-    ]);
-  };
-
-  // Show a simple prompt for "Other" reports
-  const showReportForm = () => {
+    // Close options menu and open report modal
     setOptionsVisible(false);
-
-    // For platforms that support Alert.prompt (iOS)
-    if (Platform.OS === "ios") {
-      Alert.prompt(
-        "Report Details",
-        "Please provide more information about why you're reporting this video:",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Submit",
-            onPress: (additionalInfo) =>
-              submitReport("Other Issue", additionalInfo),
-          },
-        ],
-        "plain-text"
-      );
-    } else {
-      // For Android, just use a simple reason
-      submitReport("Other Issue", "");
-    }
-  };
-
-  const submitReport = async (reason, additionalInfo = "") => {
-    if (!selectedVideo || !user) {
-      setOptionsVisible(false);
-      return;
-    }
-
-    try {
-      setOptionsVisible(false);
-
-      // Show processing indicator
-      Alert.alert("Processing", "Submitting your report...");
-
-      // Prepare report data
-      const reportData = {
-        contentType: "video",
-        contentId: selectedVideo._id,
-        spotId: spotId,
-        reportedBy: user.uid,
-        reason: reason,
-        additionalInfo: additionalInfo,
-      };
-
-      // Submit the report using the report service
-      await reportService.submitReport(reportData);
-
-      // Show success message
-      Alert.alert(
-        "Thank You",
-        "Your report has been submitted and will be reviewed."
-      );
-    } catch (error) {
-      console.error("Error reporting video:", error);
-      Alert.alert("Error", "Failed to submit report. Please try again.");
-    }
+    setReportModalVisible(true);
   };
 
   const renderVideoItem = ({ item, index }) => {
@@ -472,13 +470,29 @@ const VideoClipsList = ({
               </TouchableOpacity>
             ) : (
               // Options for other users
-              <TouchableOpacity
-                style={styles.optionItem}
-                onPress={handleReportVideo}
-              >
-                <Ionicons name="flag" size={24} color={colors.secondary} />
-                <Text style={styles.optionText}>Report Video</Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={handleReportVideo}
+                >
+                  <Ionicons name="flag" size={24} color={colors.secondary} />
+                  <Text style={styles.optionText}>Report Video</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={handleBlockUser}
+                >
+                  <Ionicons
+                    name="person-remove"
+                    size={24}
+                    color={colors.danger}
+                  />
+                  <Text style={[styles.optionText, { color: colors.danger }]}>
+                    Block User
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
 
             <TouchableOpacity
@@ -491,6 +505,17 @@ const VideoClipsList = ({
           </View>
         </TouchableOpacity>
       </Modal>
+      <UniversalReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        contentType="video"
+        contentId={selectedVideo?._id}
+        contentName={selectedVideo?.caption || "Video"}
+        additionalData={{
+          spotId: spotId,
+          uploadedBy: selectedVideo?.uploadedBy,
+        }}
+      />
     </>
   );
 };

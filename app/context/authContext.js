@@ -6,6 +6,9 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
 } from "firebase/auth";
 import {
   doc,
@@ -740,6 +743,232 @@ export function AuthProvider({ children }) {
     });
   };
 
+  // Block a user
+  const blockUser = async (userId) => {
+    if (!user) return false;
+
+    try {
+      // Get the target user's information
+      const targetUserRef = doc(firestore, "users", userId);
+      const targetUserSnap = await getDoc(targetUserRef);
+
+      if (!targetUserSnap.exists()) {
+        throw new Error("User not found");
+      }
+
+      const targetUserData = targetUserSnap.data();
+      const blockedUser = {
+        userId,
+        displayName: targetUserData.displayName || "Unknown User",
+        profilePhoto: targetUserData.profilePhoto || null,
+        blockedAt: new Date(),
+      };
+
+      // Update current user's document to add blocked user
+      const userRef = doc(firestore, "users", user.uid);
+
+      // Initialize blockedUsers array if it doesn't exist
+      if (!userProfile.blockedUsers) {
+        await updateDoc(userRef, {
+          blockedUsers: [blockedUser],
+        });
+      } else {
+        // Check if user is already blocked
+        if (
+          userProfile.blockedUsers.some((blocked) => blocked.userId === userId)
+        ) {
+          return true; // Already blocked, no action needed
+        }
+
+        // Add to blockedUsers array
+        await updateDoc(userRef, {
+          blockedUsers: arrayUnion(blockedUser),
+        });
+      }
+
+      // If they were friends, remove from friends list
+      const existingFriend = userProfile.friends?.find(
+        (friend) => friend.userId === userId
+      );
+      if (existingFriend) {
+        await updateDoc(userRef, {
+          friends: arrayRemove(existingFriend),
+        });
+
+        // Also remove current user from target user's friends list
+        try {
+          const currentUserInTargetFriends = targetUserData.friends?.find(
+            (friend) => friend.userId === user.uid
+          );
+
+          if (currentUserInTargetFriends) {
+            await updateDoc(targetUserRef, {
+              friends: arrayRemove(currentUserInTargetFriends),
+            });
+          }
+        } catch (error) {
+          console.warn("Error removing from target's friends list:", error);
+          // Continue anyway as the current user's list was updated
+        }
+      }
+
+      // Update local state
+      setUserProfile((prev) => {
+        const updatedProfile = { ...prev };
+
+        // Add to blocked users
+        if (!updatedProfile.blockedUsers) {
+          updatedProfile.blockedUsers = [blockedUser];
+        } else {
+          updatedProfile.blockedUsers = [
+            ...updatedProfile.blockedUsers.filter((b) => b.userId !== userId),
+            blockedUser,
+          ];
+        }
+
+        // Remove from friends if needed
+        if (existingFriend) {
+          updatedProfile.friends = updatedProfile.friends.filter(
+            (friend) => friend.userId !== userId
+          );
+        }
+
+        return updatedProfile;
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      throw error;
+    }
+  };
+
+  // Unblock a user
+  const unblockUser = async (userId) => {
+    if (!user) return false;
+
+    try {
+      // Find the blocked user entry to remove
+      const blockedUserToRemove = userProfile.blockedUsers?.find(
+        (blocked) => blocked.userId === userId
+      );
+
+      if (!blockedUserToRemove) {
+        return false; // User not blocked, nothing to do
+      }
+
+      // Update Firestore
+      const userRef = doc(firestore, "users", user.uid);
+      await updateDoc(userRef, {
+        blockedUsers: arrayRemove(blockedUserToRemove),
+      });
+
+      // Update local state
+      setUserProfile((prev) => ({
+        ...prev,
+        blockedUsers: prev.blockedUsers.filter(
+          (blocked) => blocked.userId !== userId
+        ),
+      }));
+
+      return true;
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      throw error;
+    }
+  };
+
+  // Check if a user is blocked
+  const isUserBlocked = (userId) => {
+    if (!userProfile || !userProfile.blockedUsers) return false;
+
+    return userProfile.blockedUsers.some(
+      (blocked) => blocked.userId === userId
+    );
+  };
+
+  /**
+   * Delete user account and all associated data
+   * @param {string} password Current user's password for verification
+   * @returns {Promise<boolean>} Success status
+   */
+  const deleteAccount = async (password) => {
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    try {
+      console.log("Starting account deletion process");
+
+      // First, re-authenticate the user (required for sensitive operations)
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+
+      // Begin deletion process
+      setLoading(true);
+
+      // 1. Delete user data from Firestore
+      try {
+        const userRef = doc(firestore, "users", user.uid);
+
+        // Fetch user data first to get references to user content
+        const userSnapshot = await getDoc(userRef);
+        if (userSnapshot.exists()) {
+          const userData = userSnapshot.data();
+
+          // Optional: Handle deletion of user-specific content
+          // Delete user uploads, comments, etc.
+          // This may involve multiple Firestore or Storage operations
+
+          // Mark the data as deleted without immediate deletion
+          // This approach is safer than immediate deletion
+          await updateDoc(userRef, {
+            isDeleted: true,
+            email: `deleted-${user.uid}@example.com`,
+            displayName: "Deleted User",
+            deletedAt: new Date(),
+            // Preserve metadata for compliance purposes
+            originalEmail: user.email,
+          });
+
+          console.log("User data marked as deleted in Firestore");
+        }
+      } catch (firestoreError) {
+        console.error(
+          "Error handling Firestore data during account deletion:",
+          firestoreError
+        );
+        // Continue with auth deletion even if Firestore operations fail
+      }
+
+      // 2. Delete the Firebase Authentication account
+      await deleteUser(user);
+      console.log("Firebase Auth account deleted successfully");
+
+      // 3. Clear local state
+      setUser(null);
+      setUserProfile(null);
+
+      // 4. Clear stored auth state
+      await storeAuthState(false);
+
+      // Account deletion is complete
+      return true;
+    } catch (error) {
+      console.error("Error in deleteAccount:", error);
+
+      // Handle specific error cases
+      if (error.code === "auth/requires-recent-login") {
+        // User needs to sign in again before deleting account
+        console.error("Recent authentication required");
+      }
+
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -760,6 +989,10 @@ export function AuthProvider({ children }) {
         removeFavouriteSpot,
         isSpotFavourited,
         authError,
+        blockUser,
+        unblockUser,
+        isUserBlocked,
+        deleteAccount,
       }}
     >
       {children}

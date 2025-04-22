@@ -20,11 +20,12 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/authContext";
+import { filterBlockedContent } from "../utils/blockingUtils";
 
 export default function SpotsMap() {
   // Always call these hooks, regardless of authentication
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, userProfile } = useAuth();
   const map = useRef(null);
   const [spots, setSpots] = useState([]);
   const [filteredSpots, setFilteredSpots] = useState([]);
@@ -39,6 +40,7 @@ export default function SpotsMap() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Navigation effect
   useEffect(() => {
@@ -47,33 +49,64 @@ export default function SpotsMap() {
     }
   }, [loading, user, router]);
 
-  // Fetch spots effect
+  //fetch spots effect
+
   useEffect(() => {
-    const fetchSpots = async () => {
-      if (!user) return;
-
-      try {
-        const response = await spotService.getAllSpots();
-        if (response.data) {
-          const validSpots = response.data.filter(
-            (spot) =>
-              spot?.location?.coordinates &&
-              Array.isArray(spot.location.coordinates) &&
-              spot.location.coordinates.length === 2
-          );
-          setSpots(validSpots);
-          setFilteredSpots(validSpots);
-        }
-      } catch (error) {
-        console.error("Error fetching spots:", error);
-        Alert.alert("Error", "Failed to load spots. Please try again.");
-      }
-    };
-
     fetchSpots();
-  }, [user]);
+  }, [userProfile?.blockedUsers]);
 
-  // Memoize refresh handler
+  // Fetch spots
+  const fetchSpots = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const response = await spotService.getAllSpots();
+
+      if (response.data) {
+        // Filter valid spots (those with coordinates)
+        const validSpots = response.data.filter(
+          (spot) =>
+            spot?.location?.coordinates &&
+            Array.isArray(spot.location.coordinates) &&
+            spot.location.coordinates.length === 2
+        );
+
+        // Get list of blocked user IDs
+        const blockedUserIds =
+          userProfile?.blockedUsers?.map((blockedUser) => blockedUser.userId) ||
+          [];
+        console.log(blockedUserIds);
+        // Filter out spots from blocked users
+        const filteredSpots = validSpots.filter((spot) => {
+          // Log each spot's details for debugging
+          console.log(`Spot: ${spot.name}, AddedBy: ${spot.addedBy}`);
+
+          // Check if the spot's addedBy matches any blocked user
+          const isBlockedUser = blockedUserIds.some(
+            (blockedId) => blockedId === spot.addedBy
+          );
+
+          // Keep the spot if it's not added by a blocked user
+          return !isBlockedUser;
+        });
+
+        console.log(`Total spots: ${validSpots.length}`);
+        console.log(`Filtered spots: ${filteredSpots.length}`);
+        console.log("Blocked user IDs:", blockedUserIds);
+
+        setSpots(filteredSpots);
+        setFilteredSpots(filteredSpots);
+      }
+    } catch (error) {
+      console.error("Error fetching spots:", error);
+      Alert.alert("Error", "Failed to load spots. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Memoise refresh handler
   const handleRefresh = useMemo(
     () => async () => {
       try {
@@ -200,15 +233,15 @@ export default function SpotsMap() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["left", "right"]}>
-      <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-        <Ionicons name="refresh" size={24} color={colors.white} />
-      </TouchableOpacity>
-
       <TouchableOpacity
         style={styles.searchButton}
         onPress={() => setSearchModalVisible(true)}
       >
         <Ionicons name="search" size={24} color={colors.white} />
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
+        <Ionicons name="refresh" size={24} color={colors.white} />
       </TouchableOpacity>
 
       <MapView
@@ -433,8 +466,8 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: "absolute",
-    top: 55,
-    left: 10,
+    top: 110, // Position it below the search button
+    right: 10,
     width: 40,
     height: 40,
     borderRadius: 20,

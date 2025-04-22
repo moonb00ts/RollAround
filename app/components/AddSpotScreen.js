@@ -19,8 +19,10 @@ import { Ionicons } from "@expo/vector-icons";
 import colors from "../components/config/colors";
 import { spotService } from "../services/api";
 import MapComponent from "../components/MapComponent";
+import { useAuth } from "../context/authContext";
 
 export default function AddSpot() {
+  const user = useAuth();
   const router = useRouter();
   const [uploadProgress, setUploadProgress] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -199,6 +201,7 @@ export default function AddSpot() {
           address: address || "Location address unavailable",
         },
         spotType: spotType,
+        addedBy: user.uid,
         images: images
           .filter((img) => img.cloudinaryUrl) // Only include successfully uploaded images
           .map((img) => ({

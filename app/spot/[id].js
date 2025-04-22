@@ -20,6 +20,7 @@ import { useAuth } from "../context/authContext";
 import ShareSpot from "../components/ShareSpot";
 import VideoClipsList from "../components/VideoClipsList";
 import VideoSelector from "../components/VideoSelector";
+import UniversalReportModal from "../components/ReportModal";
 
 export default function SpotDetails() {
   const { id } = useLocalSearchParams();
@@ -32,6 +33,7 @@ export default function SpotDetails() {
   const [showVideoForm, setShowVideoForm] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
   const [favouritingInProgress, setFavouritingInProgress] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const { user, addFavouriteSpot, removeFavouriteSpot, isSpotFavourited } =
     useAuth();
 
@@ -311,6 +313,15 @@ export default function SpotDetails() {
                 )}
               </View>
             </View>
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity
+                style={styles.reportButton}
+                onPress={() => setReportModalVisible(true)}
+              >
+                <Ionicons name="flag-outline" size={24} color={colors.dark} />
+                <Text style={styles.actionButtonText}>Report this spot</Text>
+              </TouchableOpacity>
+            </View>
           </>
         )}
         contentContainerStyle={styles.scrollViewContent}
@@ -320,6 +331,17 @@ export default function SpotDetails() {
         isVisible={showShareModal}
         onClose={() => setShowShareModal(false)}
         spot={spot}
+      />
+      <UniversalReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        contentType="spot"
+        contentId={spot._id}
+        contentName={spot.name}
+        additionalData={{
+          spotType: spot.spotType,
+          coordinates: spot.location?.coordinates,
+        }}
       />
     </SafeAreaView>
   );
@@ -372,7 +394,6 @@ const styles = StyleSheet.create({
   favouriteActive: {
     backgroundColor: colors.primary,
   },
-  // Back button (update position)
   backButton: {
     left: 10,
     width: 40,
@@ -483,6 +504,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-around",
     marginBottom: 40,
+    flexWrap: "wrap",
+    gap: 10,
   },
   actionButton: {
     backgroundColor: colors.secondary,
@@ -491,6 +514,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,
+    maxWidth: 300,
   },
   actionButtonText: {
     color: colors.dark,
@@ -524,5 +548,21 @@ const styles = StyleSheet.create({
   },
   detailSection: {
     marginBottom: 20,
+  },
+  actionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 40,
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  reportButton: {
+    flexDirection: "row",
+    color: "#fff",
+    alignItems: "center",
+    backgroundColor: colors.secondary,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
   },
 });

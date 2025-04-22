@@ -281,6 +281,43 @@ export default function Profile() {
           </View>
         )}
 
+        <View style={styles.securitySection}>
+          <Text style={styles.sectionTitle}>Privacy & Security</Text>
+
+          <TouchableOpacity
+            style={styles.securityOption}
+            onPress={() => router.push("/blockedUsers")}
+          >
+            <View style={styles.securityOptionLeft}>
+              <Ionicons name="shield-outline" size={24} color={colors.white} />
+              <Text style={styles.securityOptionText}>Blocked Users</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.secondary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.securityOption}
+            onPress={() => router.push("/deleteAccount")}
+          >
+            <View style={styles.securityOptionLeft}>
+              <Ionicons name="trash-outline" size={24} color={colors.danger} />
+              <Text
+                style={[styles.securityOptionText, { color: colors.danger }]}
+              >
+                Delete Account
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.secondary}
+            />
+          </TouchableOpacity>
+        </View>
         {/* Logout button */}
         <AppButton
           title={loggingOut ? "Logging out..." : "Logout"}
@@ -559,5 +596,45 @@ const styles = StyleSheet.create({
     fontFamily: "SubwayBerlinSC",
     textAlign: "center",
     marginRight: 40, // Offset for the close button to center the title
+  },
+  securitySection: {
+    marginBottom: 30,
+    borderTopWidth: 1,
+    borderTopColor: colors.medium,
+    paddingTop: 20,
+  },
+  securityOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.medium,
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  securityOptionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  securityOptionText: {
+    color: colors.white,
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  badgeContainer: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+    marginRight: 10,
+  },
+  badgeText: {
+    color: colors.dark,
+    fontSize: 12,
+    fontWeight: "bold",
   },
 });

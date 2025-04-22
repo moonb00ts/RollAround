@@ -20,6 +20,7 @@ import moment from "moment";
 import colors from "../components/config/colors";
 import { eventService } from "../services/api";
 import { useAuth } from "../context/authContext";
+import UniversalReportModal from "../components/ReportModal";
 
 export default function EventDetails() {
   const { id } = useLocalSearchParams();
@@ -28,6 +29,7 @@ export default function EventDetails() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -185,7 +187,28 @@ export default function EventDetails() {
             </TouchableOpacity>
           </View>
         </View>
+        <View style={styles.actionButtonContainer}>
+          <TouchableOpacity
+            style={styles.reportButton}
+            onPress={() => setReportModalVisible(true)}
+          >
+            <Ionicons name="flag-outline" size={20} color={colors.white} />
+            <Text style={styles.reportButtonText}>Report Event</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
+      <UniversalReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        contentType="event"
+        contentId={event._id}
+        contentName={event.title}
+        additionalData={{
+          eventDate: event.date,
+          organizer: event.organizer?._id,
+          coordinates: event.location?.coordinates,
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -319,5 +342,25 @@ const styles = StyleSheet.create({
     color: colors.dark,
     fontWeight: "bold",
     marginLeft: 5,
+  },
+  actionButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+    marginBottom: 30,
+  },
+  reportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.medium,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    borderColor: "#fff",
+    borderWidth: 1,
+  },
+  reportButtonText: {
+    color: colors.white,
+    marginLeft: 8,
   },
 });
