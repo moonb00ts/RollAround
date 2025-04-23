@@ -22,7 +22,7 @@ import MapComponent from "../components/MapComponent";
 import { useAuth } from "../context/authContext";
 
 export default function AddSpot() {
-  const user = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [uploadProgress, setUploadProgress] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -209,6 +209,7 @@ export default function AddSpot() {
             caption: "",
           })),
       };
+      console.log("Adding spot: ", spotData);
 
       const response = await spotService.createSpot(spotData);
       Alert.alert("Success", "Spot added successfully!", [

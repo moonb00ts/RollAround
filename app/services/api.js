@@ -23,7 +23,7 @@ export const spotService = {
   getSpot: async (id) => {
     console.log(`Making API request to: /spots/${id}`);
 
-    // Ensure ID is properly handled
+    
     const encodedId = encodeURIComponent(id.toString().trim());
     const url = `/spots/${encodedId}`;
 

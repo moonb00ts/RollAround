@@ -36,10 +36,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
+  const [initialised, setinitialised] = useState(false);
   const [authError, setAuthError] = useState(null);
 
-  // Store auth state in secure storage - with error handling
+  // Store auth state in secure storage 
   const storeAuthState = async (isAuthenticated) => {
     try {
       await SecureStore.setItemAsync(
@@ -48,11 +48,10 @@ export function AuthProvider({ children }) {
       );
     } catch (error) {
       console.error("Error storing auth state:", error);
-      // Continue without crashing
     }
   };
 
-  // Get stored auth state - with better error handling
+  // Get stored auth state
   const getStoredAuthState = async () => {
     try {
       const storedState = await SecureStore.getItemAsync(AUTH_STATE_KEY);
@@ -63,7 +62,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Fetch user profile data from Firestore - with safer error handling
+  // Fetch user profile data from Firestore
   const fetchUserProfile = async (userId) => {
     if (!userId) return null;
 
@@ -114,24 +113,23 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Safer navigation function
+  // navigation function
   const safeNavigate = (route) => {
     try {
       router.replace(route);
     } catch (error) {
       console.error("Navigation error:", error);
-      // Don't let navigation errors crash the app
     }
   };
 
-  // Handle auth state changes with better error handling
+  // Handle auth state changes
   const handleAuthStateChange = (currentUser) => {
     try {
       console.log(
         "Auth state changed:",
         currentUser ? "logged in" : "logged out"
       );
-      console.log("Initialized state:", initialized);
+      console.log("initialised state:", initialised);
 
       // Update user state
       setUser(currentUser);
@@ -139,18 +137,18 @@ export function AuthProvider({ children }) {
       // Store auth state (async, but don't await)
       storeAuthState(!!currentUser);
 
-      // Set initialized to true after the first auth state change
-      setInitialized(true);
+      // Set initialised to true after the first auth state change
+      setinitialised(true);
 
       // Navigation is now done in a separate effect to avoid race conditions
     } catch (error) {
       console.error("Error in handleAuthStateChange:", error);
-      // Still mark as initialized even if there's an error
-      setInitialized(true);
+      // Still mark as initialised even if there's an error
+      setinitialised(true);
     }
   };
 
-  // Effect for initial auth check - separated for clarity
+  // Effect for initial auth check
   useEffect(() => {
     const checkInitialAuthState = async () => {
       try {
@@ -167,7 +165,7 @@ export function AuthProvider({ children }) {
     checkInitialAuthState();
   }, []);
 
-  // Effect for Firebase auth listener - more robust
+  // Effect for Firebase auth listener
   useEffect(() => {
     console.log("Setting up auth listener");
     let isMounted = true;
@@ -225,11 +223,11 @@ export function AuthProvider({ children }) {
         console.error("Error in auth unsubscribe:", error);
       }
     };
-  }, []); // Remove dependency on initialized
+  }, []); // Remove dependency on initialised
 
   // Handle navigation based on auth state - as a separate effect
   useEffect(() => {
-    if (initialized && !loading) {
+    if (initialised && !loading) {
       if (user) {
         // User is logged in, navigate to tabs
         console.log("Navigating to tabs");
@@ -240,7 +238,7 @@ export function AuthProvider({ children }) {
         setTimeout(() => safeNavigate("/"), 100);
       }
     }
-  }, [initialized, loading, user]);
+  }, [initialised, loading, user]);
 
   const login = async (email, password) => {
     try {

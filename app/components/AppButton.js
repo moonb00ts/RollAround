@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   buttonText: {
-    fontFamily: "SubwayBerlinSC", // Just use the font name
+    fontFamily: "SubwayBerlinSC",
     color: colors.white,
     fontSize: 28,
     fontWeight: "500",

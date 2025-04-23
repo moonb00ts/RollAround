@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     position: "absolute",
-    top: 110, // Position it below the search button
+    top: 110,
     right: 10,
     width: 40,
     height: 40,
