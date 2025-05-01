@@ -14,11 +14,14 @@ export default function Login() {
   const { login } = useAuth();
   const router = useRouter();
 
+  //Await firebase login and navigate to tabs when successful
+
   const handleLogin = async () => {
     try {
       await login(email, password);
       router.replace("/(tabs)");
     } catch (error) {
+      //Add specific errors here later on to help user identify whats wrong with their login credentials
       Alert.alert("Error", "Please enter a valid email and password.");
     }
   };

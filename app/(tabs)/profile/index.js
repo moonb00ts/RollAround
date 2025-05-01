@@ -363,7 +363,6 @@ export default function Profile() {
   );
 }
 
-// Add these styles to the existing StyleSheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -595,7 +594,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: "SubwayBerlinSC",
     textAlign: "center",
-    marginRight: 40, // Offset for the close button to center the title
+    marginRight: 40,
   },
   securitySection: {
     marginBottom: 30,

@@ -22,6 +22,8 @@ import VideoClipsList from "../components/VideoClipsList";
 import VideoSelector from "../components/VideoSelector";
 import UniversalReportModal from "../components/ReportModal";
 
+//A reusable page for the details of each spot.
+
 export default function SpotDetails() {
   const { id } = useLocalSearchParams();
   const router = useRouter();

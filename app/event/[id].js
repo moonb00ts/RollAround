@@ -1,4 +1,3 @@
-// app/event/[id].js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -152,7 +151,7 @@ export default function EventDetails() {
           <View style={styles.infoRow}>
             <Ionicons name="person-outline" size={20} color={colors.primary} />
             <Text style={styles.infoText}>
-              Organized by {event.organizer?.username || "Anonymous"}
+              Organised by {event.organizer?.username || "Anonymous"}
             </Text>
           </View>
 

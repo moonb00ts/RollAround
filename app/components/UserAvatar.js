@@ -3,17 +3,8 @@ import { View, Image, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { fetchUserProfileWithCache } from "../hooks/useUserProfile";
 import colors from "./config/colors";
 
-/**
- * A reusable avatar component that handles fetching and displaying user profile photos
- *
- * @param {Object} props Component props
- * @param {string} props.userId User ID for fetching profile (priority over name)
- * @param {string} props.displayName Display name for fallback initial
- * @param {string} props.profilePhoto Direct profile photo URL (optional)
- * @param {number} props.size Size of the avatar in pixels (default: 40)
- * @param {Object} props.style Additional styles for the avatar container
- * @param {boolean} props.showLoading Whether to show loading indicator
- */
+//A reusable avatar component that handles fetching and displaying user profile photos
+
 const UserAvatar = ({
   userId,
   displayName = "",

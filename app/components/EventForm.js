@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import moment from "moment";
@@ -43,18 +42,15 @@ export default function EventForm() {
   const [image, setImage] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Define the location change handler
   const handleLocationChange = (newLocation) => {
     setLocation(newLocation);
   };
 
-  // Define the address change handler
   const handleAddressChange = (newAddress) => {
     setAddress(newAddress);
   };
 
   const handleClose = () => {
-    // Check if there's unsaved work
     const hasUnsavedWork = title || description || image || address;
 
     if (hasUnsavedWork) {
@@ -71,7 +67,6 @@ export default function EventForm() {
         ]
       );
     } else {
-      // No unsaved work, just go back
       router.back();
     }
   };
@@ -93,7 +88,7 @@ export default function EventForm() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [16, 9],
-        quality: 0.7, // Reduced for faster uploads
+        quality: 0.7,
       });
 
       if (!result.canceled) {
@@ -103,7 +98,6 @@ export default function EventForm() {
           cloudinaryUrl: null,
         });
 
-        // Prepare the form data
         const formData = new FormData();
         const fileType = imageUri.split(".").pop();
         formData.append("file", {
@@ -113,7 +107,6 @@ export default function EventForm() {
         });
 
         try {
-          // Upload with progress tracking
           const uploadResponse = await eventService.uploadImage(
             formData,
             (progress) => {
@@ -121,7 +114,6 @@ export default function EventForm() {
             }
           );
 
-          // Update the image with its Cloudinary URL
           setImage((prev) => ({
             ...prev,
             cloudinaryUrl: uploadResponse.url,
@@ -144,13 +136,17 @@ export default function EventForm() {
 
   const onDateChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
-    setShowDatePicker(Platform.OS === "ios");
+    if (Platform.OS === "android") {
+      setShowDatePicker(false);
+    }
     setDate(currentDate);
   };
 
   const onTimeChange = (event, selectedTime) => {
     const currentTime = selectedTime || time;
-    setShowTimePicker(Platform.OS === "ios");
+    if (Platform.OS === "android") {
+      setShowTimePicker(false);
+    }
     setTime(currentTime);
   };
 
@@ -160,7 +156,6 @@ export default function EventForm() {
       return;
     }
 
-    // Validate form
     if (!title.trim()) {
       Alert.alert("Error", "Please enter a title for the event");
       return;
@@ -184,7 +179,6 @@ export default function EventForm() {
     setIsSubmitting(true);
 
     try {
-      // Combine date and time
       const eventDateTime = new Date(date);
       eventDateTime.setHours(time.getHours(), time.getMinutes());
 
@@ -198,18 +192,17 @@ export default function EventForm() {
           coordinates: [location.longitude, location.latitude],
           address: address.trim(),
         },
-        userId: user.uid, // Current user as organizer
+        userId: user.uid,
       };
 
       console.log("Submitting event data:", JSON.stringify(eventData, null, 2));
 
-      const response = await eventService.createEvent(eventData);
+      await eventService.createEvent(eventData);
 
       Alert.alert("Success", "Event added successfully!", [
         { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
-      // Enhance error logging
       console.error("Submission error:", error);
       console.error("Error response:", error.response?.data);
 
@@ -286,22 +279,64 @@ export default function EventForm() {
             </View>
 
             {showDatePicker && (
-              <DateTimePicker
-                value={date}
-                mode="date"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={onDateChange}
-                minimumDate={new Date()}
-              />
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerWrapper}>
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                    themeVariant="dark"
+                    accentColor={colors.secondary}
+                    textColor={colors.white}
+                    style={[
+                      styles.datePicker,
+                      { backgroundColor: colors.medium },
+                    ]}
+                  />
+                  {Platform.OS === "ios" && (
+                    <View style={styles.iosPickerButtons}>
+                      <TouchableOpacity
+                        style={styles.iosPickerButton}
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Text style={styles.iosPickerButtonText}>Close</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </View>
             )}
 
             {showTimePicker && (
-              <DateTimePicker
-                value={time}
-                mode="time"
-                display={Platform.OS === "ios" ? "spinner" : "default"}
-                onChange={onTimeChange}
-              />
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerWrapper}>
+                  <DateTimePicker
+                    value={time}
+                    mode="time"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onTimeChange}
+                    themeVariant="dark"
+                    accentColor={colors.secondary}
+                    textColor={colors.white}
+                    style={[
+                      styles.datePicker,
+                      { backgroundColor: colors.medium },
+                    ]}
+                  />
+                  {Platform.OS === "ios" && (
+                    <View style={styles.iosPickerButtons}>
+                      <TouchableOpacity
+                        style={styles.iosPickerButton}
+                        onPress={() => setShowTimePicker(false)}
+                      >
+                        <Text style={styles.iosPickerButtonText}>Close</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </View>
             )}
           </View>
 
@@ -395,8 +430,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: colors.white,
     flex: 1,
-    textAlign: "center",
-    marginRight: 34, // Balance the space taken by the close button
+
+    marginRight: 34,
     fontFamily: "SubwayBerlinSC",
   },
   inputContainer: {
@@ -524,6 +559,36 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: colors.dark,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  pickerContainer: {
+    marginTop: 10,
+    alignItems: "center",
+  },
+  pickerWrapper: {
+    backgroundColor: colors.medium,
+    borderRadius: 8,
+    overflow: "hidden",
+    width: "100%",
+  },
+  datePicker: {
+    backgroundColor: colors.medium,
+    width: "100%",
+  },
+  iosPickerButtons: {
+    backgroundColor: colors.medium,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderTopWidth: 1,
+    borderTopColor: colors.light,
+  },
+  iosPickerButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  iosPickerButtonText: {
+    color: colors.secondary,
     fontSize: 16,
     fontWeight: "bold",
   },

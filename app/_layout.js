@@ -3,6 +3,9 @@ import { useEffect } from "react";
 import { useFonts } from "expo-font";
 import { SplashScreen } from "expo-router";
 import { AuthProvider } from "./context/authContext";
+import { LinkingProvider } from "@react-navigation/native";
+
+//Main layout for app
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,6 +28,30 @@ export default function RootLayout() {
     if (!fontsLoaded) {
       return null;
     }
+
+    //Getting ready to implement linking later 
+    
+    const linking = {
+      prefixes: ["rollaround://", "com.rollAround.app://"],
+      config: {
+        screens: {
+          index: "/",
+          "(tabs)": {
+            screens: {
+              index: "spots",
+              feed: "feed",
+              whatsOn: "events",
+              profile: "profile",
+            },
+          },
+          spot: "spot/:id",
+          event: "event/:id",
+          addSpot: "addSpot",
+          addEvent: "addEvent",
+        },
+      },
+    };
+
     return (
       <AuthProvider>
         <Stack screenOptions={{ headerShown: false }}>
@@ -62,7 +89,6 @@ export default function RootLayout() {
       </AuthProvider>
     );
   } catch (error) {
-    // Render a simple error screen instead of crashing
     return (
       <View
         style={{

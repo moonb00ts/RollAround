@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
   const [initialised, setinitialised] = useState(false);
   const [authError, setAuthError] = useState(null);
 
-  // Store auth state in secure storage 
+  // Store auth state in secure storage
   const storeAuthState = async (isAuthenticated) => {
     try {
       await SecureStore.setItemAsync(
@@ -225,7 +225,7 @@ export function AuthProvider({ children }) {
     };
   }, []); // Remove dependency on initialised
 
-  // Handle navigation based on auth state - as a separate effect
+  // Handle navigation based on auth state
   useEffect(() => {
     if (initialised && !loading) {
       if (user) {
@@ -310,7 +310,7 @@ export function AuthProvider({ children }) {
       await signOut(auth);
       console.log("Firebase signout complete");
       safeNavigate("/");
-      // Auth state listener will handle the rest
+      // Auth state listener handles rest
       return true;
     } catch (error) {
       console.error("Logout error:", error);
@@ -326,7 +326,7 @@ export function AuthProvider({ children }) {
     try {
       console.log("Starting profile photo upload with userService");
 
-      // Use the dedicated userService.uploadProfilePhoto function
+      // Use the userService.uploadProfilePhoto function
       const uploadResponse = await userService.uploadProfilePhoto(
         formData,
         (progress) => {
@@ -340,7 +340,7 @@ export function AuthProvider({ children }) {
 
       console.log("Image upload successful, URL:", uploadResponse.url);
 
-      // Store only the URL reference in Firestore (not the actual image)
+      // Store the URL reference in Firestore
       const userRef = doc(firestore, "users", user.uid);
       await updateDoc(userRef, {
         profilePhoto: uploadResponse.url,
@@ -406,7 +406,6 @@ export function AuthProvider({ children }) {
       return true;
     } catch (error) {
       console.error("Error sending friend request:", error);
-      // Add more detailed error logging
       if (error.code === "permission-denied") {
         console.error(
           "This is a Firebase permissions error. Check your security rules."
@@ -541,7 +540,6 @@ export function AuthProvider({ children }) {
           "Error removing current user from friend's list:",
           innerError
         );
-        // Continue anyway as the friend was removed from user's list
       }
 
       // Update local state
@@ -572,13 +570,13 @@ export function AuthProvider({ children }) {
 
       const usersRef = collection(firestore, "users");
 
-      // First, let's get ALL users to see what's in the database
+      //get all users
       const querySnapshot = await getDocs(usersRef);
 
-      // Log the total number of users in the database
+      // Logs for dev/debugging
       console.log(`Total users in database: ${querySnapshot.size}`);
 
-      // Debug: Log all users for inspection
+      
       const allUsers = [];
       querySnapshot.forEach((doc) => {
         const userData = doc.data();
@@ -593,7 +591,7 @@ export function AuthProvider({ children }) {
         });
       });
 
-      // Now filter for our search
+      // filter for search
       const searchTermLower = searchTerm.toLowerCase();
       const results = [];
 
@@ -765,7 +763,7 @@ export function AuthProvider({ children }) {
       // Update current user's document to add blocked user
       const userRef = doc(firestore, "users", user.uid);
 
-      // Initialize blockedUsers array if it doesn't exist
+      // Initialise blockedUsers array if it doesn't exist
       if (!userProfile.blockedUsers) {
         await updateDoc(userRef, {
           blockedUsers: [blockedUser],
@@ -885,11 +883,7 @@ export function AuthProvider({ children }) {
     );
   };
 
-  /**
-   * Delete user account and all associated data
-   * @param {string} password Current user's password for verification
-   * @returns {Promise<boolean>} Success status
-   */
+  //Deleting an account: 
   const deleteAccount = async (password) => {
     if (!user) {
       throw new Error("Not authenticated");
@@ -898,7 +892,7 @@ export function AuthProvider({ children }) {
     try {
       console.log("Starting account deletion process");
 
-      // First, re-authenticate the user (required for sensitive operations)
+      // First, re-authenticate the user for safety
       const credential = EmailAuthProvider.credential(user.email, password);
       await reauthenticateWithCredential(user, credential);
 
@@ -914,12 +908,8 @@ export function AuthProvider({ children }) {
         if (userSnapshot.exists()) {
           const userData = userSnapshot.data();
 
-          // Optional: Handle deletion of user-specific content
-          // Delete user uploads, comments, etc.
-          // This may involve multiple Firestore or Storage operations
-
-          // Mark the data as deleted without immediate deletion
-          // This approach is safer than immediate deletion
+          // LATER: Handle deletion of users submitted content?
+        
           await updateDoc(userRef, {
             isDeleted: true,
             email: `deleted-${user.uid}@example.com`,
@@ -936,7 +926,6 @@ export function AuthProvider({ children }) {
           "Error handling Firestore data during account deletion:",
           firestoreError
         );
-        // Continue with auth deletion even if Firestore operations fail
       }
 
       // 2. Delete the Firebase Authentication account
@@ -950,7 +939,7 @@ export function AuthProvider({ children }) {
       // 4. Clear stored auth state
       await storeAuthState(false);
 
-      // Account deletion is complete
+      // Account deletion return true
       return true;
     } catch (error) {
       console.error("Error in deleteAccount:", error);

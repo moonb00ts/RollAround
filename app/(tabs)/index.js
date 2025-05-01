@@ -20,7 +20,6 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/authContext";
-import { filterBlockedContent } from "../utils/blockingUtils";
 
 export default function SpotsMap() {
   // Always call these hooks, regardless of authentication
@@ -180,9 +179,6 @@ export default function SpotsMap() {
 
       // Close the search modal
       setSearchModalVisible(false);
-
-      // Optionally highlight the spot or show its callout
-      // You could add state to track the selected spot
     }
   };
 
@@ -226,7 +222,7 @@ export default function SpotsMap() {
     }
   };
 
-  // If loading or no user, return null to maintain consistent hook calls
+  // If loading or no user, return null
   if (loading || !user) {
     return null;
   }

@@ -1,11 +1,4 @@
-/**
- * Filter an array of content to remove items from blocked users
- *
- * @param {Array} items - The array of content items to filter
- * @param {Array} blockedUserIds - Array of blocked user IDs
- * @param {String} userIdField - The field name in the item that contains the user ID (default: 'userId')
- * @returns {Array} Filtered array with blocked content removed
- */
+// Filter an array of content to remove items from blocked users
 export const filterBlockedContent = (
   items,
   blockedUserIds,
@@ -30,14 +23,7 @@ export const filterBlockedContent = (
   });
 };
 
-/**
- * Check if a piece of content is from a blocked user
- *
- * @param {Object} item - The content item to check
- * @param {Array} blockedUserIds - Array of blocked user IDs
- * @param {String} userIdField - The field name in the item that contains the user ID (default: 'userId')
- * @returns {Boolean} True if the content is from a blocked user
- */
+//check if content is from a blocked user
 export const isContentFromBlockedUser = (
   item,
   blockedUserIds,
@@ -52,32 +38,21 @@ export const isContentFromBlockedUser = (
     item.uploadedBy ||
     item.addedBy;
 
-  // If we can't determine the user, assume not blocked
+  // If can't determine the user, assume not blocked
   if (!contentUserId) return false;
 
   // Check if the user is in the blocked list
   return blockedUserIds.includes(contentUserId);
 };
 
-/**
- * Extract blocked user IDs from userProfile
- *
- * @param {Object} userProfile - The user profile object from Firebase
- * @returns {Array} Array of blocked user IDs
- */
+//get blocked users form profile.
 export const getBlockedUserIds = (userProfile) => {
   if (!userProfile || !userProfile.blockedUsers) return [];
 
   return userProfile.blockedUsers.map((user) => user.userId);
 };
 
-/**
- * Filter videos in a spot to remove those from blocked users
- *
- * @param {Object} spot - The spot object containing videos array
- * @param {Array} blockedUserIds - Array of blocked user IDs
- * @returns {Object} Updated spot with filtered videos
- */
+//filter spot videos
 export const filterSpotVideos = (spot, blockedUserIds) => {
   if (!spot || !blockedUserIds || !blockedUserIds.length) return spot;
 

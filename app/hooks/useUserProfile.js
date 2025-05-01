@@ -2,11 +2,8 @@ import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { firestore } from "../firebase";
 
-/**
- * Custom hook to fetch a user's profile data by userId
- * @param {string} userId - The Firebase userId of the user to fetch
- * @returns {Object} An object containing the loading state, error if any, and the user profile data
- */
+// Custom hook to fetch a user's profile data by userId
+
 export default function useUserProfile(userId) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,11 +44,8 @@ export default function useUserProfile(userId) {
   return { profile, loading, error };
 }
 
-/**
- * Helper function to fetch a user profile by userId (for one-time use)
- * @param {string} userId - The Firebase userId of the user to fetch
- * @returns {Promise<Object|null>} The user profile data or null if not found
- */
+// Helper function to fetch a user profile by userId
+
 export async function fetchUserProfile(userId) {
   if (!userId) return null;
 
@@ -69,16 +63,10 @@ export async function fetchUserProfile(userId) {
   }
 }
 
-/**
- * Cache for storing user profiles to minimize Firestore reads
- */
+//cache user profiles
 const userProfileCache = new Map();
 
-/**
- * Fetch a user profile with caching to reduce Firestore reads
- * @param {string} userId - The Firebase userId of the user to fetch
- * @returns {Promise<Object|null>} The user profile data or null if not found
- */
+//read user profiles from cache.
 export async function fetchUserProfileWithCache(userId) {
   if (!userId) return null;
 

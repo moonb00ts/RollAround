@@ -36,12 +36,12 @@ export default function AddSpot() {
   const [images, setImages] = useState([]);
   const [spotType, setSpotType] = useState("");
 
-  // Define the location change handler
+  // location change handler
   const handleLocationChange = (newLocation) => {
     setLocation(newLocation);
   };
 
-  // Define the address change handler
+  // address change handler
   const handleAddressChange = (newAddress) => {
     setAddress(newAddress);
   };
@@ -86,7 +86,7 @@ export default function AddSpot() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [16, 9],
-        quality: 0.7, // Reduced for faster uploads
+        quality: 0.7, //slightly lower than 100% to allow faster upload
       });
 
       if (!result.canceled) {
@@ -191,6 +191,7 @@ export default function AddSpot() {
 
     setIsSubmitting(true);
 
+    //Compile form data
     try {
       const spotData = {
         name: spotName,
@@ -203,7 +204,7 @@ export default function AddSpot() {
         spotType: spotType,
         addedBy: user.uid,
         images: images
-          .filter((img) => img.cloudinaryUrl) // Only include successfully uploaded images
+          .filter((img) => img.cloudinaryUrl)
           .map((img) => ({
             url: img.cloudinaryUrl,
             caption: "",
@@ -354,7 +355,7 @@ const styles = StyleSheet.create({
     color: colors.white,
     flex: 1,
     textAlign: "center",
-    marginRight: 34, // Balance the space taken by the close button
+    marginRight: 34,
   },
   inputContainer: {
     marginBottom: 20,

@@ -42,8 +42,8 @@ export default function Home() {
     SubwayBerlinSC: require("../../../assets/fonts/SubwayBerlinSC.ttf"),
   });
 
-  const [activeTab, setActiveTab] = useState("activity"); // "activity" or "notifications"
-  const [activities, setActivities] = useState([]);
+  const [activeTab, setActiveTab] = useState("activity");
+  const [activities, setActivities] = useState([]); 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,18 +59,8 @@ export default function Home() {
   const defaultActivities = [
     {
       name: "Joe Haskins",
-      action: "Added a new spot in: Clevedon, UK.",
-      timestamp: new Date(Date.now() - 3600000 * 2), // 2 hours ago
-    },
-    {
-      name: "Bear Myles",
-      action: "Added a new clip to a spot: Lloyds ampitheatre.",
-      timestamp: new Date(Date.now() - 3600000 * 5), // 5 hours ago
-    },
-    {
-      name: "Archie Turner",
-      action: "Added a new clip to a spot: Deaner Slab.",
-      timestamp: new Date(Date.now() - 3600000 * 12), // 12 hours ago
+      action: "Added a new spot in: Bristol, UK.",
+      timestamp: new Date(Date.now() - 3600000 * 2), 
     },
   ];
 
@@ -85,10 +75,9 @@ export default function Home() {
     try {
       setError(null);
 
-      // Set default activities
+      // Set default activities... Change later to a fetch of activitie logs from the database that will be created with every event/user content created.
       setActivities(defaultActivities);
 
-      // Use default empty array if userProfile isn't loaded yet
       if (!userProfile) {
         console.log("UserProfile not available yet, using empty arrays");
         setNotifications([]);

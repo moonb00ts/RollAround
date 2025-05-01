@@ -23,7 +23,6 @@ export const spotService = {
   getSpot: async (id) => {
     console.log(`Making API request to: /spots/${id}`);
 
-    
     const encodedId = encodeURIComponent(id.toString().trim());
     const url = `/spots/${encodedId}`;
 
@@ -137,11 +136,11 @@ export const spotService = {
   uploadMedia: async (formData, onProgress) => {
     console.log("Starting media upload in spotService");
     try {
-      // Get the file type from the formData to determine if it's a video
+      // Get the file type from the formData
       let fileType = "unknown";
       let fileName = "unknown";
 
-      // Attempt to extract file info for logging
+      // extract file info for logging
       try {
         if (formData._parts && formData._parts.length > 0) {
           for (const part of formData._parts) {
@@ -185,7 +184,7 @@ export const spotService = {
     } catch (error) {
       console.error("Upload error in spotService:", error);
 
-      // Enhanced error logging
+      // error logging
       if (error.response) {
         console.error("Response status:", error.response.status);
         console.error("Response data:", error.response.data);
@@ -207,10 +206,9 @@ export const spotService = {
       if (!spotId) {
         throw new Error("No spotId provided to addVideoToSpot");
       }
-
-      // Make sure userName is explicitly included - important!
+      //ensure username is sent
       if (!videoData.userName) {
-        console.warn("No userName in videoData, this will cause issues");
+        console.warn("No userName in videoData, we gotta problem here dude.");
       }
 
       // Log exactly what we're sending
@@ -218,7 +216,7 @@ export const spotService = {
       console.log("userName in request:", videoData.userName);
       console.log("uploadedBy in request:", videoData.uploadedBy);
 
-      // Deep clone to make sure we don't modify the original
+      //set payload
       const payload = JSON.parse(
         JSON.stringify({
           url: videoData.url,
@@ -345,7 +343,8 @@ export const spotService = {
   },
 };
 
-// Add these methods to your existing api.js file
+//Event service
+
 export const eventService = {
   // Get all events
   getAllEvents: () => api.get("/events"),
@@ -380,7 +379,7 @@ export const eventService = {
           );
           onProgress(percentCompleted / 100);
         },
-        timeout: 30000, // Longer timeout for uploads
+        timeout: 30000,
       });
       console.log("Upload successful:", response.data);
       return response.data;
@@ -415,7 +414,7 @@ export const userService = {
               onProgress(percentCompleted);
             }
           : undefined,
-        timeout: 30000, // Longer timeout for uploads
+        timeout: 30000,
       });
 
       console.log("Profile photo upload successful:", response.data);
@@ -433,15 +432,6 @@ export const userService = {
       throw error;
     }
   },
-
-  // Get user profile - can be expanded later for other user operations
-  getUserProfile: (userId) => api.get(`/users/${userId}`),
-
-  // Update user profile
-  updateUserProfile: (userId, profileData) =>
-    api.put(`/users/${userId}`, profileData),
-
-  // Other user-related API calls can be added here
 };
 
 //REPORT SERVICE

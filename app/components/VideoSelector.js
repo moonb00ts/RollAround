@@ -25,12 +25,12 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
   const videoRef = useRef(null);
 
   useEffect(() => {
-    console.log("🟢 Auth Debug - User:", {
+    console.log("Auth Debug - User:", {
       uid: user?.uid,
       displayName: user?.displayName,
       email: user?.email,
     });
-    console.log("🟢 Auth Debug - UserProfile:", userProfile);
+    console.log("Auth Debug - UserProfile:", userProfile);
   }, [user, userProfile]);
 
   const pickVideo = async () => {
@@ -70,7 +70,7 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
 
         setVideo({
           uri: videoAsset.uri,
-          type: "video/mp4", // Assuming MP4, but this could vary
+          type: "video/mp4", 
           name: videoAsset.uri.split("/").pop() || "video.mp4",
         });
       }
@@ -111,7 +111,6 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
     return "Anonymous";
   };
 
-  // Replace the uploadVideo function in your VideoSelector component with this version
 
   const uploadVideo = async () => {
     if (!video) {
@@ -158,20 +157,20 @@ const VideoSelector = ({ onVideoUploaded, spotId }) => {
 
       // Step 2: Add video to spot
       if (spotId) {
-        // Create payload with explicit fields
+        // Create data to submit
         const videoData = {
           url: uploadResult.url,
           thumbnail: uploadResult.thumbnail || uploadResult.url,
           caption: caption.trim(),
           description: "",
-          userName: userName, // Make sure this is included
+          userName: userName, 
           uploadedBy: user?.uid || "unknown",
         };
 
-        // Log the exact payload we're sending
+        // Log the payload we're sending
         console.log("Sending video data:", JSON.stringify(videoData, null, 2));
 
-        // Use your existing spotService
+        //send with spotService
         const response = await spotService.addVideoToSpot(spotId, videoData);
         console.log("Server response:", response);
         console.log(

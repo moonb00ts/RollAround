@@ -52,7 +52,9 @@ export default function WhatsOn() {
     if (events.length > 0) {
       // Get the next 5 upcoming events
       const upcoming = [...events]
-        .filter((event) => moment(event.date).isAfter(moment()))
+        .filter((event) =>
+          moment(event.date).isSameOrAfter(moment().startOf("day"))
+        )
         .sort((a, b) => moment(a.date).diff(moment(b.date)))
         .slice(0, 5);
       setUpcomingEvents(upcoming);
@@ -81,6 +83,7 @@ export default function WhatsOn() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchEvents();
+    console.log(events);
   };
 
   const handleAddEvent = () => {
@@ -109,7 +112,9 @@ export default function WhatsOn() {
         <Text style={styles.eventDetails}>
           {moment(item.date).format("Do MMMM [at] h:mm A")}
         </Text>
-        <Text style={styles.eventLocation}>{item.location.address}</Text>
+        <Text style={styles.eventLocation}>
+          {item.location?.address || "No location provided"}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -226,7 +231,7 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     paddingTop: 10,
-    overflow: "visible"
+    overflow: "visible",
   },
   calendar: {
     height: 120,

@@ -29,10 +29,6 @@ const FriendSearch = ({ onClose }) => {
       return;
     }
 
-    if (searchTerm.trim().length < 2) {
-      return; // Don't search with less than 2 characters
-    }
-
     // Search immediately with each character change
     performSearch();
   }, [searchTerm]);

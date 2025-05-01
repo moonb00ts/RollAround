@@ -7,7 +7,7 @@ import Constants from "expo-constants";
 let firebaseConfig = {};
 
 try {
-  // Try to get config from Constants
+  // get config from Constants
   firebaseConfig = {
     apiKey: Constants.expoConfig?.extra?.firebaseApiKey || "MISSING_API_KEY",
     authDomain:
@@ -43,7 +43,6 @@ try {
   firestore = getFirestore(app);
 } catch (error) {
   console.error("Firebase initialization error:", error);
-  // Create dummy objects to prevent crashes
   app = {};
   auth = { currentUser: null };
   firestore = {};

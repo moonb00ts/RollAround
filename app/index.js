@@ -10,13 +10,6 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        {/* <View style={styles.logoContainer}>
-          <Image
-            source={require("../assets/images/logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View> */}
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );

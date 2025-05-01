@@ -14,19 +14,6 @@ import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import colors from "./config/colors";
 
-/**
- * A map component with search functionality and user location tracking
- *
- * @param {Object} props Component props
- * @param {Object} props.initialLocation Initial coordinates {latitude, longitude}
- * @param {Function} props.onLocationChange Callback when location changes
- * @param {Function} props.onAddressChange Callback when address changes
- * @param {string} props.address Current address string
- * @param {boolean} props.showUserLocation Show user's current location marker
- * @param {string} props.placeholder Placeholder text for search input
- * @param {Object} props.mapStyle Additional styles for the map container
- * @param {boolean} props.fullscreen Whether the map should be fullscreen
- */
 const MapComponent = ({
   initialLocation,
   onLocationChange,
@@ -219,7 +206,6 @@ const MapComponent = ({
         <MapView
           ref={mapRef}
           style={styles.map}
-          // Using default provider instead of Google Maps
           initialRegion={location}
           onPress={handleMapPress}
           showsUserLocation={showUserLocation}
@@ -234,7 +220,7 @@ const MapComponent = ({
             title="Selected Location"
           />
 
-          {/* User's current location marker (if showing separately from built-in blue dot) */}
+          {/* User's current location marker */}
           {userLocation && !showUserLocation && (
             <Marker
               coordinate={{

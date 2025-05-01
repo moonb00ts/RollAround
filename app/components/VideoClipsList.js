@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Video } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import colors from "./config/colors";
 import { useAuth } from "../context/authContext";
 import { spotService, reportService } from "../services/api";
@@ -20,7 +21,7 @@ import UserAvatar from "./UserAvatar";
 import UniversalReportModal from "./ReportModal";
 import { filterBlockedContent } from "../utils/blockingUtils";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 const VideoClipsList = ({
   videos = [],
@@ -28,6 +29,7 @@ const VideoClipsList = ({
   spotId = "",
   onRefresh,
 }) => {
+  const isFocused = useIsFocused();
   const { user, userProfile, blockUser, isUserBlocked } = useAuth();
   const [activeVideo, setActiveVideo] = useState(null);
   const [loading, setLoading] = useState({});
@@ -35,13 +37,39 @@ const VideoClipsList = ({
   const videoRefs = useRef({});
   const [blockedUsers, setBlockedUsers] = useState({});
 
+  // Fullscreen state
+  const [fullscreenVideo, setFullscreenVideo] = useState(null);
+
   // State for options menu
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
 
-  // Sort videos by date (newest first) whenever the videos prop changes
+  // Stop all videos when component is not focused
+  useEffect(() => {
+    const stopAllVideos = async () => {
+      if (!isFocused) {
+        Object.values(videoRefs.current).forEach(async (videoRef) => {
+          if (videoRef) {
+            try {
+              await videoRef.stopAsync();
+              await videoRef.unloadAsync();
+            } catch (error) {
+              console.error("Error stopping video:", error);
+            }
+          }
+        });
+
+        // Reset active video
+        setActiveVideo(null);
+      }
+    };
+
+    stopAllVideos();
+  }, [isFocused]);
+
+  // Sort videos by date (newest first)
   useEffect(() => {
     if (Array.isArray(videos) && videos.length > 0) {
       // Create a copy of the videos array to avoid mutating props
@@ -180,7 +208,7 @@ const VideoClipsList = ({
 
   const handleLike = async (videoId, index) => {
     try {
-      // Optimistically update the UI immediately for responsiveness
+      // update the UI immediately for percieved responsiveness
       const updatedVideos = [...sortedVideos];
       updatedVideos[index] = {
         ...updatedVideos[index],
@@ -202,7 +230,6 @@ const VideoClipsList = ({
         console.log(`Successfully incremented likes for video ${videoId}`);
       } catch (error) {
         console.error("Error incrementing likes:", error);
-        // We don't revert the UI since we want unlimited likes regardless
       }
     } catch (error) {
       console.error("Error in handleLike:", error);
@@ -298,6 +325,27 @@ const VideoClipsList = ({
     setReportModalVisible(true);
   };
 
+  // Fullscreen handler
+  const handleFullscreen = (video) => {
+    setFullscreenVideo(video);
+  };
+
+  // Comment button handler
+  const handleCommentPress = () => {
+    Alert.alert(
+      "Feature Coming Soon",
+      "Comments feature is currently in development. Stay tuned!"
+    );
+  };
+
+  // Share button handler
+  const handleSharePress = () => {
+    Alert.alert(
+      "Feature Coming Soon",
+      "Sharing feature is currently in development. Stay tuned!"
+    );
+  };
+
   const renderVideoItem = ({ item, index }) => {
     const videoId = item._id || `video-${index}`;
     const isActive = activeVideo === videoId;
@@ -364,7 +412,7 @@ const VideoClipsList = ({
             style={styles.video}
             useNativeControls={false}
             resizeMode="cover"
-            shouldPlay={isActive}
+            shouldPlay={isActive && isFocused}
             isLooping={true}
             onLoad={() => handleVideoLoad(videoId)}
             onLoadStart={() => handleVideoLoadStart(videoId)}
@@ -381,6 +429,14 @@ const VideoClipsList = ({
               <Ionicons name="play" size={40} color={colors.white} />
             </View>
           )}
+
+          {/* Fullscreen Button */}
+          <TouchableOpacity
+            style={styles.fullscreenButton}
+            onPress={() => handleFullscreen(item)}
+          >
+            <Ionicons name="expand" size={24} color={colors.white} />
+          </TouchableOpacity>
         </TouchableOpacity>
 
         {/* Add empty space if no caption */}
@@ -399,7 +455,10 @@ const VideoClipsList = ({
             <Text style={styles.actionCount}>{videoLikes}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleCommentPress}
+          >
             <Ionicons
               name="chatbubble-outline"
               size={22}
@@ -410,7 +469,10 @@ const VideoClipsList = ({
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleSharePress}
+          >
             <Ionicons
               name="share-social-outline"
               size={22}
@@ -428,6 +490,38 @@ const VideoClipsList = ({
           <Text style={styles.spotName}>{spotName}</Text>
         </View>
       </View>
+    );
+  };
+
+  // Fullscreen Modal
+  const FullscreenModal = () => {
+    if (!fullscreenVideo) return null;
+
+    return (
+      <Modal
+        visible={!!fullscreenVideo}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setFullscreenVideo(null)}
+      >
+        <View style={styles.fullscreenContainer}>
+          <TouchableOpacity
+            style={styles.closeFullscreenButton}
+            onPress={() => setFullscreenVideo(null)}
+          >
+            <Ionicons name="close" size={30} color={colors.white} />
+          </TouchableOpacity>
+
+          <Video
+            source={{ uri: fullscreenVideo.url }}
+            style={styles.fullscreenVideo}
+            useNativeControls={true}
+            resizeMode="contain"
+            shouldPlay={true}
+            isLooping={true}
+          />
+        </View>
+      </Modal>
     );
   };
 
@@ -505,6 +599,11 @@ const VideoClipsList = ({
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Fullscreen Modal */}
+      <FullscreenModal />
+
+      {/* Existing Report Modal */}
       <UniversalReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
@@ -580,6 +679,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     right: 30,
   },
+  fullscreenButton: {
+    position: "absolute",
+    top: 5,
+    right: 45,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   caption: {
     color: colors.white,
     fontSize: 14,
@@ -588,7 +698,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   captionPlaceholder: {
-    height: 15, // Space when no caption is present
+    height: 15,
   },
   actionBar: {
     flexDirection: "row",
@@ -629,8 +739,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
   },
-
-  // Styles for options modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.7)",
@@ -659,6 +767,22 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 16,
     marginLeft: 15,
+  },
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: "black",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  fullscreenVideo: {
+    width: width,
+    height: height,
+  },
+  closeFullscreenButton: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    zIndex: 10,
   },
 });
 

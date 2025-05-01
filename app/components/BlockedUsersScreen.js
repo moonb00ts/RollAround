@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     fontFamily: "SubwayBerlinSC",
   },
   placeholderRight: {
-    width: 34, // Balance the back button
+    width: 34,
   },
   listContent: {
     padding: 15,

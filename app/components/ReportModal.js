@@ -19,17 +19,8 @@ import colors from "./config/colors";
 import { reportService } from "../services/api";
 import { useAuth } from "../context/authContext";
 
-/**
- * Universal report modal that works with any content type
- *
- * @param {Object} props
- * @param {boolean} props.visible - Controls modal visibility
- * @param {Function} props.onClose - Function to call when closing the modal
- * @param {string} props.contentType - Type of content being reported (spot, event, video, user, etc)
- * @param {string} props.contentId - ID of the content being reported
- * @param {string} props.contentName - Name of the content (optional)
- * @param {object} props.additionalData - Any additional data needed for the report
- */
+// Report modal for all content.
+
 const UniversalReportModal = ({
   visible,
   onClose,
