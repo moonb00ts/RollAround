@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import colors from "./config/colors";
 
+//Reusable avtivity card component
+
 export const ActivityCard = ({ activity }) => {
   return (
     <View style={styles.card}>
